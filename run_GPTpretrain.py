@@ -1,3 +1,9 @@
+from utils_libs import *
+from utils_dataset import *
+from utils_models import *
+from utils_methods import *
+
+
 def main(gpt_config, settings):
 
     torch.manual_seed(123)
@@ -69,11 +75,6 @@ def main(gpt_config, settings):
         start_context="Every effort moves you", tokenizer=tokenizer
     )
 
-    '''train_losses, val_losses, tokens_seen = train_model_simple(
-        model, train_loader, val_loader, optimizer, device,
-        num_epochs=settings["num_epochs"], eval_freq=5, eval_iter=1,
-        start_context="Give me the joy I can't", tokenizer=tokenizer
-    )'''
 
     return train_losses, val_losses, tokens_seen, model
 

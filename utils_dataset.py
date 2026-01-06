@@ -1,5 +1,6 @@
 from utils_libs import *
 
+
 class GPTDatasetV1(Dataset):
     def __init__(self, txt, tokenizer, max_length, stride):
         self.input_ids = []
@@ -138,6 +139,38 @@ class SpamDataset(Dataset):
 
 
 
+def format_input(entry):
+    instruction_text = (
+        f"Below is an instruction that describes a task. "
+        f"Write a response that appropriately completes the request."
+        f"\n\n### Instruction:\n{entry['instruction']}"
+    )
+
+    input_text = f"\n\n### Input:\n{entry['input']}" if entry["input"] else ""
+
+    return instruction_text + input_text
+
+def format_atc(entry):
+    instruction_text = (
+        f"Below is an instruction that describes a task. "
+        f"Write a response that appropriately completes the request."
+        f"\n\n### Instruction:\nBelow is a dialogue (communication exchange) between Air Traffic Control (ATC) and UAV Pilot in a controlled airspace. "
+        f"Only one part of the conversation is provided i.e. either for the ATC or for the UAV Pilot. "
+        f"Write a response that appropriately completes the other side of the conversation."
+    )
+
+    input_text = (
+        f"\n\n### {"UAV Pilot:\n" if "AAL" in entry["request"]["from_entity"] else "ATC:\n"}"
+        f"{entry["request"]["text"]}"
+    )
+
+    '''response_text = (
+        f"\n\n### {"UAV Pilot:\n" if "AAL" in entry["response"]["from_entity"] else "ATC:\n"}"
+        f"{entry["response"]["text"]}"
+    )'''
+    
+    return instruction_text + input_text
+    
 class InstructionDataset(Dataset):
     def __init__(self, data, tokenizer):
         self.data = data
@@ -147,6 +180,30 @@ class InstructionDataset(Dataset):
         for entry in data:
             instruction_plus_input = format_input(entry)
             response_text = f"\n\n### Response:\n{entry['output']}"
+            full_text = instruction_plus_input + response_text
+            self.encoded_texts.append(
+                tokenizer.encode(full_text)
+            )
+
+    def __getitem__(self, index):
+        return self.encoded_texts[index]
+
+    def __len__(self):
+        return len(self.data)
+
+
+class AtcDataset(Dataset):
+    def __init__(self, data, tokenizer):
+        self.data = data
+
+        # Pre-tokenize texts
+        self.encoded_texts = []
+        for entry in data:
+            instruction_plus_input = format_atc(entry)
+            response_text = (
+              f"\n\n### {"UAV Pilot:\n" if "AAL" in entry["response"]["from_entity"] else "ATC:\n"}"
+              f"{entry["response"]["text"]}"
+            )
             full_text = instruction_plus_input + response_text
             self.encoded_texts.append(
                 tokenizer.encode(full_text)
@@ -214,17 +271,4 @@ def download_and_load_file(file_path, url):
         data = json.load(file)
 
     return data
-
-
-def format_input(entry):
-    instruction_text = (
-        f"Below is an instruction that describes a task. "
-        f"Write a response that appropriately completes the request."
-        f"\n\n### Instruction:\n{entry['instruction']}"
-    )
-
-    input_text = f"\n\n### Input:\n{entry['input']}" if entry["input"] else ""
-
-    return instruction_text + input_text
-
 

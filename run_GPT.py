@@ -1,4 +1,7 @@
 from utils_libs import *
+from utils_dataset import *
+from utils_models import *
+from utils_methods import *
 
 
 def main():
@@ -45,5 +48,5 @@ def main():
 
 
 if __name__ == "__main__":
-    pass #main()
+    main()
     print("Done!")

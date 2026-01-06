@@ -1,5 +1,6 @@
 from utils_libs import *
 
+
 class MultiHeadAttention(nn.Module):
     def __init__(self, d_in, d_out, context_length, dropout, num_heads, qkv_bias=False):
         super().__init__()
@@ -56,9 +57,7 @@ class MultiHeadAttention(nn.Module):
         return context_vec
 
 
-#####################################
-# Chapter 4
-#####################################
+
 class LayerNorm(nn.Module):
     def __init__(self, emb_dim):
         super().__init__()

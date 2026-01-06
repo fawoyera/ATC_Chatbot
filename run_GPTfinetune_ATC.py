@@ -1,3 +1,11 @@
+from utils_libs import *
+from utils_dataset import *
+from utils_models import *
+from utils_methods import *
+
+from utils_downloads import *
+
+
 def main(test_mode=False):
     #######################################
     # Print package versions
@@ -17,9 +25,25 @@ def main(test_mode=False):
     #######################################
     # Download and prepare dataset
     #######################################
-    file_path = "instruction-data.json"
-    url = "https://raw.githubusercontent.com/rasbt/LLMs-from-scratch/main/ch07/01_main-chapter-code/instruction-data.json"
-    data = download_and_load_file(file_path, url)
+    file_path = "atc-communication-data.json"
+    file_166_ = "AAL166.json"
+    file_736_ = "AAL736.json"
+    file_94_ = "AAL94.json"
+    with open(file_166_, "r", encoding="utf-8") as file_166:
+        data_166 = json.load(file_166)
+    with open(file_736_, "r", encoding="utf-8") as file_736:
+        data_736 = json.load(file_736)
+    with open(file_94_, "r", encoding="utf-8") as file_94:
+        data_94 = json.load(file_94)
+
+    # Get dialogues from each atc dataset and combine into one
+    combined_atc_data = data_166["exchange_pairs"] + data_736["exchange_pairs"] + data_94["exchange_pairs"]
+    data = combined_atc_data
+
+    # Write the combined atc_data into a file
+    with open(file_path, "w") as file:
+        json.dump(combined_atc_data, file, indent=4)  # "indent" for pretty-printing
+    print(f"Combined data saved as {file_path}")
 
     train_portion = int(len(data) * 0.85)  # 85% for training
     test_portion = int(len(data) * 0.1)    # 10% for testing
@@ -51,7 +75,7 @@ def main(test_mode=False):
 
     torch.manual_seed(123)
 
-    train_dataset = InstructionDataset(train_data, tokenizer)
+    train_dataset = AtcDataset(train_data, tokenizer)
     train_loader = DataLoader(
         train_dataset,
         batch_size=batch_size,
@@ -61,7 +85,7 @@ def main(test_mode=False):
         num_workers=num_workers
     )
 
-    val_dataset = InstructionDataset(val_data, tokenizer)
+    val_dataset = AtcDataset(val_data, tokenizer)
     val_loader = DataLoader(
         val_dataset,
         batch_size=batch_size,
@@ -107,7 +131,10 @@ def main(test_mode=False):
             "gpt2-xl (1558M)": {"emb_dim": 1600, "n_layers": 48, "n_heads": 25},
         }
 
-        CHOOSE_MODEL = "gpt2-medium (355M)"
+        #CHOOSE_MODEL = "gpt2-medium (355M)"
+        #CHOOSE_MODEL = "gpt2-small (124M)"
+        CHOOSE_MODEL = "gpt2-large (774M)"
+        #CHOOSE_MODEL = "gpt2-xl (1558M)"
 
         BASE_CONFIG.update(model_configs[CHOOSE_MODEL])
 
@@ -136,13 +163,13 @@ def main(test_mode=False):
     start_time = time.time()
     optimizer = torch.optim.AdamW(model.parameters(), lr=0.00005, weight_decay=0.1)
 
-    num_epochs = 2
+    num_epochs = 10 #2
 
     torch.manual_seed(123)
     train_losses, val_losses, tokens_seen = train_model_simple(
         model, train_loader, val_loader, optimizer, device,
         num_epochs=num_epochs, eval_freq=5, eval_iter=5,
-        start_context=format_input(val_data[0]), tokenizer=tokenizer
+        start_context=format_atc(val_data[0]), tokenizer=tokenizer
     )
 
     end_time = time.time()
@@ -150,7 +177,8 @@ def main(test_mode=False):
     print(f"Training completed in {execution_time_minutes:.2f} minutes.")
 
     epochs_tensor = torch.linspace(0, num_epochs, len(train_losses))
-    plot_losses(epochs_tensor, tokens_seen, train_losses, val_losses)
+    model_size = f"{re.sub(r'[ ()]', '', CHOOSE_MODEL) }"
+    plot_losses(epochs_tensor, tokens_seen, train_losses, val_losses, model_size)
     print(50*"-")
 
     #######################################
@@ -159,7 +187,7 @@ def main(test_mode=False):
     print("Generating responses")
     for i, entry in tqdm(enumerate(test_data), total=len(test_data)):
 
-        input_text = format_input(entry)
+        input_text = format_atc(entry)
 
         token_ids = generate(
             model=model,
@@ -169,18 +197,19 @@ def main(test_mode=False):
             eos_id=50256
         )
         generated_text = token_ids_to_text(token_ids, tokenizer)
-        response_text = generated_text[len(input_text):].replace("### Response:", "").strip()
+        response_text = generated_text[len(input_text):].replace("### ATC:", "").replace("### UAV Pilot:", "").strip()
 
         test_data[i]["model_response"] = response_text
 
-    test_data_path = "instruction-data-with-response-standalone.json"
+    test_data_path = f"atc-data-with-response-standalone{re.sub(r'[ ()]', '', CHOOSE_MODEL) }.json"
     with open(test_data_path, "w") as file:
         json.dump(test_data, file, indent=4)  # "indent" for pretty-printing
     print(f"Responses saved as {test_data_path}")
 
-    file_name = f"{re.sub(r'[ ()]', '', CHOOSE_MODEL) }-sft-standalone.pth"
+    file_name = f"{re.sub(r'[ ()]', '', CHOOSE_MODEL) }-atc-sft-standalone.pth"
     torch.save(model.state_dict(), file_name)
     print(f"Model saved as {file_name}")
+    print(model)
 
 
 if __name__ == "__main__":
@@ -188,7 +217,7 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="Finetune a GPT model for classification"
+        description="Finetune a GPT model for atc dialogue"
     )
     parser.add_argument(
         "--test_mode",
