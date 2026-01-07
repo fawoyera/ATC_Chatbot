@@ -1,0 +1,565 @@
+{
+  "conversation_id": "conv_AAL736",
+  "aircraft_callsign": "AAL736",
+  "controllers": [
+    "F1-1"
+  ],
+  "start_time": 1580.42,
+  "end_time": 1835.24,
+  "duration": 254.81999999999994,
+  "turn_count": 15,
+  "exchange_count": 7,
+  "transmissions": [
+    {
+      "transmission_id": "L02F1-0242",
+      "from_entity": "AAL736",
+      "to_entities": [
+        "F1-1"
+      ],
+      "text": "BOSTON APPROACH AMERICAN SEVEN THIRTY SIX WITH YOU DESCENDING TO FIVE ZERO THREE ZERO ON THE HEADING",
+      "raw_text": "BOSTON APPROACH AMERICAN SEVEN THIRTY SIX WITH YOU DESCENDING TO FIVE \n   ZERO THREE ZERO ON THE HEADING",
+      "start_time": 1580.42,
+      "end_time": 1584.59,
+      "comment": null,
+      "transmission_type": "check_in",
+      "extracted_values": {}
+    },
+    {
+      "transmission_id": "L02F1-0243",
+      "from_entity": "F1-1",
+      "to_entities": [
+        "AAL736"
+      ],
+      "text": "AMERICAN SEVEN THIRTY SIX BOSTON APPROACH ROGER FLY HEADING THREE SIX ZERO AND DESCEND AND MAINTAIN THREE THOUSAND",
+      "raw_text": "AMERICAN SEVEN THIRTY SIX BOSTON APPROACH ROGER FLY HEADING THREE SIX \n   ZERO AND DESCEND AND MAINTAIN THREE THOUSAND",
+      "start_time": 1585.48,
+      "end_time": 1589.69,
+      "comment": null,
+      "transmission_type": "instruction_heading",
+      "extracted_values": {
+        "heading": "THREE",
+        "altitude": "THREE"
+      }
+    },
+    {
+      "transmission_id": "L02F1-0244",
+      "from_entity": "AAL736",
+      "to_entities": [
+        "F1-1"
+      ],
+      "text": "DOWN TO THREE THREE SIX ZERO ON THE HEADING AMERICAN SEVEN THIRTY SIX",
+      "raw_text": "DOWN TO THREE THREE SIX ZERO ON THE HEADING AMERICAN SEVEN THIRTY SIX",
+      "start_time": 1589.67,
+      "end_time": 1592.39,
+      "comment": null,
+      "transmission_type": "readback",
+      "extracted_values": {
+        "readback_values": [
+          "THREE THREE SIX ZERO",
+          "SEVEN",
+          "SIX"
+        ]
+      }
+    },
+    {
+      "transmission_id": "L02F1-0250",
+      "from_entity": "F1-1",
+      "to_entities": [
+        "AAL736"
+      ],
+      "text": "AMERICAN SEVEN THIRTY SIX TURN LEFT HEADING THREE THREE ZERO",
+      "raw_text": "AMERICAN SEVEN THIRTY SIX TURN LEFT HEADING THREE THREE ZERO",
+      "start_time": 1654.45,
+      "end_time": 1656.74,
+      "comment": null,
+      "transmission_type": "instruction_heading",
+      "extracted_values": {
+        "heading": "THREE"
+      }
+    },
+    {
+      "transmission_id": "L02F1-0251",
+      "from_entity": "AAL736",
+      "to_entities": [
+        "F1-1"
+      ],
+      "text": "THREE THREE ZERO AMERICAN SEVEN THIRTY SIX",
+      "raw_text": "THREE THREE ZERO AMERICAN SEVEN THIRTY SIX",
+      "start_time": 1656.7,
+      "end_time": 1658.81,
+      "comment": null,
+      "transmission_type": "readback",
+      "extracted_values": {
+        "readback_values": [
+          "THREE THREE ZERO",
+          "SEVEN",
+          "SIX"
+        ]
+      }
+    },
+    {
+      "transmission_id": "L02F1-0263",
+      "from_entity": "F1-1",
+      "to_entities": [
+        "AAL736"
+      ],
+      "text": "AMERICAN SEVEN THIRTY SIX DESCEND AND MAINTAIN TWO THOUSAND",
+      "raw_text": "AMERICAN SEVEN THIRTY SIX DESCEND AND MAINTAIN TWO THOUSAND",
+      "start_time": 1713.66,
+      "end_time": 1715.99,
+      "comment": null,
+      "transmission_type": "instruction_altitude",
+      "extracted_values": {
+        "altitude": "TWO"
+      }
+    },
+    {
+      "transmission_id": "L02F1-0264",
+      "from_entity": "AAL736",
+      "to_entities": [
+        "F1-1"
+      ],
+      "text": "DOWN TO TWO AMERICAN SEVEN THIRTY SIX",
+      "raw_text": "DOWN TO TWO AMERICAN SEVEN THIRTY SIX",
+      "start_time": 1716.15,
+      "end_time": 1718.0,
+      "comment": null,
+      "transmission_type": "readback",
+      "extracted_values": {
+        "readback_values": [
+          "TWO",
+          "SEVEN",
+          "SIX"
+        ]
+      }
+    },
+    {
+      "transmission_id": "L02F1-0271",
+      "from_entity": "F1-1",
+      "to_entities": [
+        "AAL736"
+      ],
+      "text": "AMERICAN SEVEN THIRTY SIX AH MAINTAIN A HUNDRED AND NINETY KNOTS OR GREATER ADVISE RUNWAY TWO SEVEN IN SIGHT",
+      "raw_text": "AMERICAN SEVEN THIRTY SIX AH MAINTAIN A HUNDRED AND NINETY KNOTS OR \n   GREATER ADVISE RUNWAY TWO SEVEN IN SIGHT",
+      "start_time": 1736.83,
+      "end_time": 1740.95,
+      "comment": null,
+      "transmission_type": "instruction_altitude",
+      "extracted_values": {
+        "altitude": "A"
+      }
+    },
+    {
+      "transmission_id": "L02F1-0272",
+      "from_entity": "AAL736",
+      "to_entities": [
+        "F1-1"
+      ],
+      "text": "WE GOT THE FIELD ONE NINETY OR BETTER AMERICAN SEVEN THIRTY SIX",
+      "raw_text": "WE GOT THE FIELD ONE NINETY OR BETTER AMERICAN SEVEN THIRTY SIX",
+      "start_time": 1741.92,
+      "end_time": 1744.78,
+      "comment": null,
+      "transmission_type": "readback",
+      "extracted_values": {
+        "readback_values": [
+          "ONE",
+          "SEVEN",
+          "SIX"
+        ]
+      }
+    },
+    {
+      "transmission_id": "L02F1-0273",
+      "from_entity": "F1-1",
+      "to_entities": [
+        "AAL736"
+      ],
+      "text": "SEVEN THIRTY SIX YOU RE CLEARED VISUAL APPROACH RUNWAY TWO SEVEN MAINTAIN AT A HUNDRED AND NINETY KNOTS TO FIVE D M E",
+      "raw_text": "SEVEN THIRTY SIX YOU (QUOTE RE) CLEARED VISUAL APPROACH RUNWAY TWO SEVEN \n   MAINTAIN AT A HUNDRED AND NINETY KNOTS TO FIVE D M E",
+      "start_time": 1744.79,
+      "end_time": 1749.33,
+      "comment": null,
+      "transmission_type": "clearance",
+      "extracted_values": {
+        "clearance": "VISUAL APPROACH"
+      }
+    },
+    {
+      "transmission_id": "L02F1-0274",
+      "from_entity": "AAL736",
+      "to_entities": [
+        "F1-1"
+      ],
+      "text": "HUNDRED AND NINETY TO FIVE WE NUMBER ONE",
+      "raw_text": "HUNDRED AND NINETY TO FIVE WE NUMBER ONE",
+      "start_time": 1749.51,
+      "end_time": 1751.13,
+      "comment": null,
+      "transmission_type": "readback",
+      "extracted_values": {
+        "readback_values": [
+          "FIVE",
+          "ONE"
+        ]
+      }
+    },
+    {
+      "transmission_id": "L02F1-0275",
+      "from_entity": "F1-1",
+      "to_entities": [
+        "AAL736"
+      ],
+      "text": "YES SIR",
+      "raw_text": "YES SIR",
+      "start_time": 1751.23,
+      "end_time": 1751.73,
+      "comment": null,
+      "transmission_type": "other",
+      "extracted_values": {}
+    },
+    {
+      "transmission_id": "L02F1-0276",
+      "from_entity": "AAL736",
+      "to_entities": [
+        "F1-1"
+      ],
+      "text": "WE LL PICK IT UP",
+      "raw_text": "WE (QUOTE LL) PICK IT UP",
+      "start_time": 1751.86,
+      "end_time": 1752.57,
+      "comment": null,
+      "transmission_type": "readback",
+      "extracted_values": {}
+    },
+    {
+      "transmission_id": "L02F1-0297",
+      "from_entity": "F1-1",
+      "to_entities": [
+        "AAL736"
+      ],
+      "text": "AMERICAN SEVEN THIRTY SIX TRAFFIC LANDING TWO TWO LEFT WILL SHORT OF YOUR RUNWAY CONTACT THE TOWER ONE ONE NINER POINT ONE GOOD DAY",
+      "raw_text": "AMERICAN SEVEN THIRTY SIX TRAFFIC LANDING TWO TWO LEFT WILL SHORT OF YOUR \n   RUNWAY CONTACT THE TOWER ONE ONE NINER POINT ONE GOOD DAY",
+      "start_time": 1829.19,
+      "end_time": 1834.03,
+      "comment": null,
+      "transmission_type": "other",
+      "extracted_values": {}
+    },
+    {
+      "transmission_id": "L02F1-0298",
+      "from_entity": "AAL736",
+      "to_entities": [
+        "F1-1"
+      ],
+      "text": "NINETEEN ONE GOOD DAY",
+      "raw_text": "NINETEEN ONE GOOD DAY",
+      "start_time": 1834.02,
+      "end_time": 1835.24,
+      "comment": null,
+      "transmission_type": null,
+      "extracted_values": {}
+    }
+  ],
+  "exchange_pairs": [
+    {
+      "exchange_id": "ex_000",
+      "exchange_type": "checkin_response",
+      "request": {
+        "transmission_id": "L02F1-0242",
+        "from_entity": "AAL736",
+        "to_entities": [
+          "F1-1"
+        ],
+        "text": "BOSTON APPROACH AMERICAN SEVEN THIRTY SIX WITH YOU DESCENDING TO FIVE ZERO THREE ZERO ON THE HEADING",
+        "raw_text": "BOSTON APPROACH AMERICAN SEVEN THIRTY SIX WITH YOU DESCENDING TO FIVE \n   ZERO THREE ZERO ON THE HEADING",
+        "start_time": 1580.42,
+        "end_time": 1584.59,
+        "comment": null,
+        "transmission_type": "check_in",
+        "extracted_values": {}
+      },
+      "response": {
+        "transmission_id": "L02F1-0243",
+        "from_entity": "F1-1",
+        "to_entities": [
+          "AAL736"
+        ],
+        "text": "AMERICAN SEVEN THIRTY SIX BOSTON APPROACH ROGER FLY HEADING THREE SIX ZERO AND DESCEND AND MAINTAIN THREE THOUSAND",
+        "raw_text": "AMERICAN SEVEN THIRTY SIX BOSTON APPROACH ROGER FLY HEADING THREE SIX \n   ZERO AND DESCEND AND MAINTAIN THREE THOUSAND",
+        "start_time": 1585.48,
+        "end_time": 1589.69,
+        "comment": null,
+        "transmission_type": "instruction_heading",
+        "extracted_values": {
+          "heading": "THREE",
+          "altitude": "THREE"
+        }
+      },
+      "instruction_type": null,
+      "requested_value": null,
+      "readback_value": null,
+      "readback_correct": null,
+      "response_time": 0.8900000000001
+    },
+    {
+      "exchange_id": "ex_001",
+      "exchange_type": "other",
+      "request": {
+        "transmission_id": "L02F1-0244",
+        "from_entity": "AAL736",
+        "to_entities": [
+          "F1-1"
+        ],
+        "text": "DOWN TO THREE THREE SIX ZERO ON THE HEADING AMERICAN SEVEN THIRTY SIX",
+        "raw_text": "DOWN TO THREE THREE SIX ZERO ON THE HEADING AMERICAN SEVEN THIRTY SIX",
+        "start_time": 1589.67,
+        "end_time": 1592.39,
+        "comment": null,
+        "transmission_type": "readback",
+        "extracted_values": {
+          "readback_values": [
+            "THREE THREE SIX ZERO",
+            "SEVEN",
+            "SIX"
+          ]
+        }
+      },
+      "response": {
+        "transmission_id": "L02F1-0250",
+        "from_entity": "F1-1",
+        "to_entities": [
+          "AAL736"
+        ],
+        "text": "AMERICAN SEVEN THIRTY SIX TURN LEFT HEADING THREE THREE ZERO",
+        "raw_text": "AMERICAN SEVEN THIRTY SIX TURN LEFT HEADING THREE THREE ZERO",
+        "start_time": 1654.45,
+        "end_time": 1656.74,
+        "comment": null,
+        "transmission_type": "instruction_heading",
+        "extracted_values": {
+          "heading": "THREE"
+        }
+      },
+      "instruction_type": null,
+      "requested_value": null,
+      "readback_value": null,
+      "readback_correct": null,
+      "response_time": 62.059999999999945
+    },
+    {
+      "exchange_id": "ex_002",
+      "exchange_type": "other",
+      "request": {
+        "transmission_id": "L02F1-0251",
+        "from_entity": "AAL736",
+        "to_entities": [
+          "F1-1"
+        ],
+        "text": "THREE THREE ZERO AMERICAN SEVEN THIRTY SIX",
+        "raw_text": "THREE THREE ZERO AMERICAN SEVEN THIRTY SIX",
+        "start_time": 1656.7,
+        "end_time": 1658.81,
+        "comment": null,
+        "transmission_type": "readback",
+        "extracted_values": {
+          "readback_values": [
+            "THREE THREE ZERO",
+            "SEVEN",
+            "SIX"
+          ]
+        }
+      },
+      "response": {
+        "transmission_id": "L02F1-0263",
+        "from_entity": "F1-1",
+        "to_entities": [
+          "AAL736"
+        ],
+        "text": "AMERICAN SEVEN THIRTY SIX DESCEND AND MAINTAIN TWO THOUSAND",
+        "raw_text": "AMERICAN SEVEN THIRTY SIX DESCEND AND MAINTAIN TWO THOUSAND",
+        "start_time": 1713.66,
+        "end_time": 1715.99,
+        "comment": null,
+        "transmission_type": "instruction_altitude",
+        "extracted_values": {
+          "altitude": "TWO"
+        }
+      },
+      "instruction_type": null,
+      "requested_value": null,
+      "readback_value": null,
+      "readback_correct": null,
+      "response_time": 54.850000000000136
+    },
+    {
+      "exchange_id": "ex_003",
+      "exchange_type": "other",
+      "request": {
+        "transmission_id": "L02F1-0264",
+        "from_entity": "AAL736",
+        "to_entities": [
+          "F1-1"
+        ],
+        "text": "DOWN TO TWO AMERICAN SEVEN THIRTY SIX",
+        "raw_text": "DOWN TO TWO AMERICAN SEVEN THIRTY SIX",
+        "start_time": 1716.15,
+        "end_time": 1718.0,
+        "comment": null,
+        "transmission_type": "readback",
+        "extracted_values": {
+          "readback_values": [
+            "TWO",
+            "SEVEN",
+            "SIX"
+          ]
+        }
+      },
+      "response": {
+        "transmission_id": "L02F1-0271",
+        "from_entity": "F1-1",
+        "to_entities": [
+          "AAL736"
+        ],
+        "text": "AMERICAN SEVEN THIRTY SIX AH MAINTAIN A HUNDRED AND NINETY KNOTS OR GREATER ADVISE RUNWAY TWO SEVEN IN SIGHT",
+        "raw_text": "AMERICAN SEVEN THIRTY SIX AH MAINTAIN A HUNDRED AND NINETY KNOTS OR \n   GREATER ADVISE RUNWAY TWO SEVEN IN SIGHT",
+        "start_time": 1736.83,
+        "end_time": 1740.95,
+        "comment": null,
+        "transmission_type": "instruction_altitude",
+        "extracted_values": {
+          "altitude": "A"
+        }
+      },
+      "instruction_type": null,
+      "requested_value": null,
+      "readback_value": null,
+      "readback_correct": null,
+      "response_time": 18.829999999999927
+    },
+    {
+      "exchange_id": "ex_004",
+      "exchange_type": "other",
+      "request": {
+        "transmission_id": "L02F1-0272",
+        "from_entity": "AAL736",
+        "to_entities": [
+          "F1-1"
+        ],
+        "text": "WE GOT THE FIELD ONE NINETY OR BETTER AMERICAN SEVEN THIRTY SIX",
+        "raw_text": "WE GOT THE FIELD ONE NINETY OR BETTER AMERICAN SEVEN THIRTY SIX",
+        "start_time": 1741.92,
+        "end_time": 1744.78,
+        "comment": null,
+        "transmission_type": "readback",
+        "extracted_values": {
+          "readback_values": [
+            "ONE",
+            "SEVEN",
+            "SIX"
+          ]
+        }
+      },
+      "response": {
+        "transmission_id": "L02F1-0273",
+        "from_entity": "F1-1",
+        "to_entities": [
+          "AAL736"
+        ],
+        "text": "SEVEN THIRTY SIX YOU RE CLEARED VISUAL APPROACH RUNWAY TWO SEVEN MAINTAIN AT A HUNDRED AND NINETY KNOTS TO FIVE D M E",
+        "raw_text": "SEVEN THIRTY SIX YOU (QUOTE RE) CLEARED VISUAL APPROACH RUNWAY TWO SEVEN \n   MAINTAIN AT A HUNDRED AND NINETY KNOTS TO FIVE D M E",
+        "start_time": 1744.79,
+        "end_time": 1749.33,
+        "comment": null,
+        "transmission_type": "clearance",
+        "extracted_values": {
+          "clearance": "VISUAL APPROACH"
+        }
+      },
+      "instruction_type": null,
+      "requested_value": null,
+      "readback_value": null,
+      "readback_correct": null,
+      "response_time": 0.009999999999990905
+    },
+    {
+      "exchange_id": "ex_005",
+      "exchange_type": "other",
+      "request": {
+        "transmission_id": "L02F1-0274",
+        "from_entity": "AAL736",
+        "to_entities": [
+          "F1-1"
+        ],
+        "text": "HUNDRED AND NINETY TO FIVE WE NUMBER ONE",
+        "raw_text": "HUNDRED AND NINETY TO FIVE WE NUMBER ONE",
+        "start_time": 1749.51,
+        "end_time": 1751.13,
+        "comment": null,
+        "transmission_type": "readback",
+        "extracted_values": {
+          "readback_values": [
+            "FIVE",
+            "ONE"
+          ]
+        }
+      },
+      "response": {
+        "transmission_id": "L02F1-0275",
+        "from_entity": "F1-1",
+        "to_entities": [
+          "AAL736"
+        ],
+        "text": "YES SIR",
+        "raw_text": "YES SIR",
+        "start_time": 1751.23,
+        "end_time": 1751.73,
+        "comment": null,
+        "transmission_type": "other",
+        "extracted_values": {}
+      },
+      "instruction_type": null,
+      "requested_value": null,
+      "readback_value": null,
+      "readback_correct": null,
+      "response_time": 0.09999999999990905
+    },
+    {
+      "exchange_id": "ex_006",
+      "exchange_type": "other",
+      "request": {
+        "transmission_id": "L02F1-0276",
+        "from_entity": "AAL736",
+        "to_entities": [
+          "F1-1"
+        ],
+        "text": "WE LL PICK IT UP",
+        "raw_text": "WE (QUOTE LL) PICK IT UP",
+        "start_time": 1751.86,
+        "end_time": 1752.57,
+        "comment": null,
+        "transmission_type": "readback",
+        "extracted_values": {}
+      },
+      "response": {
+        "transmission_id": "L02F1-0297",
+        "from_entity": "F1-1",
+        "to_entities": [
+          "AAL736"
+        ],
+        "text": "AMERICAN SEVEN THIRTY SIX TRAFFIC LANDING TWO TWO LEFT WILL SHORT OF YOUR RUNWAY CONTACT THE TOWER ONE ONE NINER POINT ONE GOOD DAY",
+        "raw_text": "AMERICAN SEVEN THIRTY SIX TRAFFIC LANDING TWO TWO LEFT WILL SHORT OF YOUR \n   RUNWAY CONTACT THE TOWER ONE ONE NINER POINT ONE GOOD DAY",
+        "start_time": 1829.19,
+        "end_time": 1834.03,
+        "comment": null,
+        "transmission_type": "other",
+        "extracted_values": {}
+      },
+      "instruction_type": null,
+      "requested_value": null,
+      "readback_value": null,
+      "readback_correct": null,
+      "response_time": 76.62000000000012
+    }
+  ]
+}

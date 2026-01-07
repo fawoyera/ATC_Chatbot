@@ -1,0 +1,640 @@
+{
+  "conversation_id": "conv_AAL94",
+  "aircraft_callsign": "AAL94",
+  "controllers": [
+    "F1-2"
+  ],
+  "start_time": 3484.62,
+  "end_time": 3785.93,
+  "duration": 301.30999999999995,
+  "turn_count": 17,
+  "exchange_count": 8,
+  "transmissions": [
+    {
+      "transmission_id": "L02F1-0541",
+      "from_entity": "AAL94",
+      "to_entities": [
+        "F1-2"
+      ],
+      "text": "BOSTON APPROACH AMERICAN S NINETY FOUR HEAVY S WITH YOU LEVEL NINE THOUSAND TWO ONE ZERO ON THE SPEED",
+      "raw_text": "BOSTON APPROACH AMERICAN (QUOTE S) NINETY FOUR HEAVY (QUOTE S) WITH YOU \n   LEVEL NINE THOUSAND TWO ONE ZERO ON THE SPEED",
+      "start_time": 3484.62,
+      "end_time": 3489.43,
+      "comment": null,
+      "transmission_type": "check_in",
+      "extracted_values": {}
+    },
+    {
+      "transmission_id": "L02F1-0542",
+      "from_entity": "F1-2",
+      "to_entities": [
+        "AAL94"
+      ],
+      "text": "SAY AGAIN PLEASE",
+      "raw_text": "SAY AGAIN PLEASE",
+      "start_time": 3491.95,
+      "end_time": 3492.87,
+      "comment": null,
+      "transmission_type": "question",
+      "extracted_values": {}
+    },
+    {
+      "transmission_id": "L02F1-0543",
+      "from_entity": "AAL94",
+      "to_entities": [
+        "F1-2"
+      ],
+      "text": "IT S AMERICAN S NINETY FOUR HEAVY LEVEL SIX THOUSAND",
+      "raw_text": "IT (QUOTE S) AMERICAN (QUOTE S) NINETY FOUR HEAVY LEVEL SIX THOUSAND",
+      "start_time": 3495.24,
+      "end_time": 3498.05,
+      "comment": null,
+      "transmission_type": "readback",
+      "extracted_values": {
+        "readback_values": [
+          "FOUR",
+          "SIX"
+        ]
+      }
+    },
+    {
+      "transmission_id": "L02F1-0544",
+      "from_entity": "F1-2",
+      "to_entities": [
+        "AAL94"
+      ],
+      "text": "AMERICAN NINETY FOUR HEAVY BOSTON APPROACH FLY HEADING ONE ZERO ZERO",
+      "raw_text": "AMERICAN NINETY FOUR HEAVY BOSTON APPROACH FLY HEADING ONE ZERO ZERO",
+      "start_time": 3498.2,
+      "end_time": 3500.62,
+      "comment": null,
+      "transmission_type": "instruction_heading",
+      "extracted_values": {
+        "heading": "ONE"
+      }
+    },
+    {
+      "transmission_id": "L02F1-0545",
+      "from_entity": "AAL94",
+      "to_entities": [
+        "F1-2"
+      ],
+      "text": "HEADING ONE ZERO ZERO AMERICAN S NINETY FOUR HEAVY",
+      "raw_text": "HEADING ONE ZERO ZERO AMERICAN (QUOTE S) NINETY FOUR HEAVY",
+      "start_time": 3501.16,
+      "end_time": 3503.85,
+      "comment": null,
+      "transmission_type": "readback",
+      "extracted_values": {
+        "readback_values": [
+          "ONE ZERO ZERO",
+          "FOUR"
+        ]
+      }
+    },
+    {
+      "transmission_id": "L02F1-0548",
+      "from_entity": "F1-2",
+      "to_entities": [
+        "AAL94"
+      ],
+      "text": "AMERICAN NINETY FOUR HEAVY DESCEND AND MAINTAIN THREE THOUSAND",
+      "raw_text": "AMERICAN NINETY FOUR HEAVY DESCEND AND MAINTAIN THREE THOUSAND",
+      "start_time": 3549.78,
+      "end_time": 3552.1,
+      "comment": null,
+      "transmission_type": "instruction_altitude",
+      "extracted_values": {
+        "altitude": "THREE"
+      }
+    },
+    {
+      "transmission_id": "L02F1-0549",
+      "from_entity": "AAL94",
+      "to_entities": [
+        "F1-2"
+      ],
+      "text": "OUT OF SIX FOR THREE AMERICAN S NINETY FOUR HEAVY",
+      "raw_text": "OUT OF SIX FOR THREE AMERICAN (QUOTE S) NINETY FOUR HEAVY",
+      "start_time": 3552.67,
+      "end_time": 3554.81,
+      "comment": null,
+      "transmission_type": "readback",
+      "extracted_values": {
+        "readback_values": [
+          "SIX",
+          "THREE",
+          "FOUR"
+        ]
+      }
+    },
+    {
+      "transmission_id": "L02F1-0559",
+      "from_entity": "F1-2",
+      "to_entities": [
+        "AAL94"
+      ],
+      "text": "AMERICAN NINETY FOUR HEAVY TURN RIGHT HEADING TWO TWO ZERO",
+      "raw_text": "AMERICAN NINETY FOUR HEAVY TURN RIGHT HEADING TWO TWO ZERO",
+      "start_time": 3606.66,
+      "end_time": 3608.7,
+      "comment": null,
+      "transmission_type": "instruction_heading",
+      "extracted_values": {
+        "heading": "TWO"
+      }
+    },
+    {
+      "transmission_id": "L02F1-0560",
+      "from_entity": "AAL94",
+      "to_entities": [
+        "F1-2"
+      ],
+      "text": "RIGHT TURN HEADING TWO TWO ZERO AMERICAN S NINETY FOUR HEAVY",
+      "raw_text": "RIGHT TURN HEADING TWO TWO ZERO AMERICAN (QUOTE S) NINETY FOUR HEAVY",
+      "start_time": 3609.42,
+      "end_time": 3612.01,
+      "comment": null,
+      "transmission_type": "readback",
+      "extracted_values": {
+        "readback_values": [
+          "TWO TWO ZERO",
+          "FOUR"
+        ]
+      }
+    },
+    {
+      "transmission_id": "L02F1-0568",
+      "from_entity": "F1-2",
+      "to_entities": [
+        "AAL94"
+      ],
+      "text": "AMERICAN NINETY FOUR HEAVY TURN RIGHT HEADING TWO FIVE ZERO INTERCEPT TWO SEVEN LOCALIZER",
+      "raw_text": "AMERICAN NINETY FOUR HEAVY TURN RIGHT HEADING TWO FIVE ZERO INTERCEPT TWO \n   SEVEN LOCALIZER",
+      "start_time": 3643.83,
+      "end_time": 3647.2,
+      "comment": null,
+      "transmission_type": "instruction_heading",
+      "extracted_values": {
+        "heading": "TWO"
+      }
+    },
+    {
+      "transmission_id": "L02F1-0569",
+      "from_entity": "AAL94",
+      "to_entities": [
+        "F1-2"
+      ],
+      "text": "RIGHT TWO FIVE ZERO INTERCEPT THE LOCALIZER AMERICAN S NINETY FOUR HEAVY",
+      "raw_text": "RIGHT TWO FIVE ZERO INTERCEPT THE LOCALIZER AMERICAN (QUOTE S) NINETY \n   FOUR HEAVY",
+      "start_time": 3647.64,
+      "end_time": 3650.98,
+      "comment": null,
+      "transmission_type": "readback",
+      "extracted_values": {
+        "readback_values": [
+          "TWO FIVE ZERO",
+          "FOUR"
+        ]
+      }
+    },
+    {
+      "transmission_id": "L02F1-0576",
+      "from_entity": "F1-2",
+      "to_entities": [
+        "AAL94"
+      ],
+      "text": "AMERICAN NINETY FOUR HEAVY SIX FROM RIPIT INTERCEPT THE LOCALIZER THREE THOUSAND OR ABOVE CLEARED I L S D M E TWO SEVEN APPROACH",
+      "raw_text": "AMERICAN NINETY FOUR HEAVY SIX FROM RIPIT INTERCEPT THE LOCALIZER THREE \n   THOUSAND OR ABOVE CLEARED I L S D M E TWO SEVEN APPROACH",
+      "start_time": 3685.22,
+      "end_time": 3690.62,
+      "comment": null,
+      "transmission_type": "clearance",
+      "extracted_values": {
+        "clearance": "I L S D M E TWO SEVEN APPROACH"
+      }
+    },
+    {
+      "transmission_id": "L02F1-0577",
+      "from_entity": "AAL94",
+      "to_entities": [
+        "F1-2"
+      ],
+      "text": "INTERCEPT THE LOCALIZER THREE OR ABOVE WE RE CLEARED FOR THE APPROACH AMERICAN S NINETY FOUR HEAVY",
+      "raw_text": "INTERCEPT THE LOCALIZER THREE OR ABOVE WE (QUOTE RE) CLEARED FOR THE \n   APPROACH AMERICAN (QUOTE S) NINETY FOUR HEAVY",
+      "start_time": 3691.26,
+      "end_time": 3695.49,
+      "comment": null,
+      "transmission_type": "readback",
+      "extracted_values": {
+        "readback_values": [
+          "THREE",
+          "FOUR"
+        ]
+      }
+    },
+    {
+      "transmission_id": "L02F1-0582",
+      "from_entity": "F1-2",
+      "to_entities": [
+        "AAL94"
+      ],
+      "text": "AMERICAN NINETY FOUR HEAVY SPEED ONE SEVEN ZERO TO RIPIT",
+      "raw_text": "AMERICAN NINETY FOUR HEAVY SPEED ONE SEVEN ZERO TO RIPIT",
+      "start_time": 3711.7,
+      "end_time": 3714.07,
+      "comment": null,
+      "transmission_type": "other",
+      "extracted_values": {}
+    },
+    {
+      "transmission_id": "L02F1-0583",
+      "from_entity": "AAL94",
+      "to_entities": [
+        "F1-2"
+      ],
+      "text": "O K GOT IT NINETY FOUR HEAVY",
+      "raw_text": "O K GOT IT NINETY FOUR HEAVY",
+      "start_time": 3714.63,
+      "end_time": 3716.11,
+      "comment": null,
+      "transmission_type": "readback",
+      "extracted_values": {
+        "readback_values": [
+          "FOUR"
+        ]
+      }
+    },
+    {
+      "transmission_id": "L02F1-0594",
+      "from_entity": "F1-2",
+      "to_entities": [
+        "AAL94"
+      ],
+      "text": "AMERICAN NINETY FOUR HEAVY CONTACT THE TOWER ONE ONE NINER POINT ONE",
+      "raw_text": "AMERICAN NINETY FOUR HEAVY CONTACT THE TOWER ONE ONE NINER POINT ONE",
+      "start_time": 3781.59,
+      "end_time": 3784.16,
+      "comment": null,
+      "transmission_type": "other",
+      "extracted_values": {}
+    },
+    {
+      "transmission_id": "L02F1-0595",
+      "from_entity": "AAL94",
+      "to_entities": [
+        "F1-2"
+      ],
+      "text": "AMERICAN NINETY FOUR HEAVY SO LONG",
+      "raw_text": "AMERICAN NINETY FOUR HEAVY SO LONG",
+      "start_time": 3784.4,
+      "end_time": 3785.93,
+      "comment": null,
+      "transmission_type": null,
+      "extracted_values": {}
+    }
+  ],
+  "exchange_pairs": [
+    {
+      "exchange_id": "ex_000",
+      "exchange_type": "checkin_response",
+      "request": {
+        "transmission_id": "L02F1-0541",
+        "from_entity": "AAL94",
+        "to_entities": [
+          "F1-2"
+        ],
+        "text": "BOSTON APPROACH AMERICAN S NINETY FOUR HEAVY S WITH YOU LEVEL NINE THOUSAND TWO ONE ZERO ON THE SPEED",
+        "raw_text": "BOSTON APPROACH AMERICAN (QUOTE S) NINETY FOUR HEAVY (QUOTE S) WITH YOU \n   LEVEL NINE THOUSAND TWO ONE ZERO ON THE SPEED",
+        "start_time": 3484.62,
+        "end_time": 3489.43,
+        "comment": null,
+        "transmission_type": "check_in",
+        "extracted_values": {}
+      },
+      "response": {
+        "transmission_id": "L02F1-0542",
+        "from_entity": "F1-2",
+        "to_entities": [
+          "AAL94"
+        ],
+        "text": "SAY AGAIN PLEASE",
+        "raw_text": "SAY AGAIN PLEASE",
+        "start_time": 3491.95,
+        "end_time": 3492.87,
+        "comment": null,
+        "transmission_type": "question",
+        "extracted_values": {}
+      },
+      "instruction_type": null,
+      "requested_value": null,
+      "readback_value": null,
+      "readback_correct": null,
+      "response_time": 2.519999999999982
+    },
+    {
+      "exchange_id": "ex_001",
+      "exchange_type": "other",
+      "request": {
+        "transmission_id": "L02F1-0543",
+        "from_entity": "AAL94",
+        "to_entities": [
+          "F1-2"
+        ],
+        "text": "IT S AMERICAN S NINETY FOUR HEAVY LEVEL SIX THOUSAND",
+        "raw_text": "IT (QUOTE S) AMERICAN (QUOTE S) NINETY FOUR HEAVY LEVEL SIX THOUSAND",
+        "start_time": 3495.24,
+        "end_time": 3498.05,
+        "comment": null,
+        "transmission_type": "readback",
+        "extracted_values": {
+          "readback_values": [
+            "FOUR",
+            "SIX"
+          ]
+        }
+      },
+      "response": {
+        "transmission_id": "L02F1-0544",
+        "from_entity": "F1-2",
+        "to_entities": [
+          "AAL94"
+        ],
+        "text": "AMERICAN NINETY FOUR HEAVY BOSTON APPROACH FLY HEADING ONE ZERO ZERO",
+        "raw_text": "AMERICAN NINETY FOUR HEAVY BOSTON APPROACH FLY HEADING ONE ZERO ZERO",
+        "start_time": 3498.2,
+        "end_time": 3500.62,
+        "comment": null,
+        "transmission_type": "instruction_heading",
+        "extracted_values": {
+          "heading": "ONE"
+        }
+      },
+      "instruction_type": null,
+      "requested_value": null,
+      "readback_value": null,
+      "readback_correct": null,
+      "response_time": 0.1499999999996362
+    },
+    {
+      "exchange_id": "ex_002",
+      "exchange_type": "other",
+      "request": {
+        "transmission_id": "L02F1-0545",
+        "from_entity": "AAL94",
+        "to_entities": [
+          "F1-2"
+        ],
+        "text": "HEADING ONE ZERO ZERO AMERICAN S NINETY FOUR HEAVY",
+        "raw_text": "HEADING ONE ZERO ZERO AMERICAN (QUOTE S) NINETY FOUR HEAVY",
+        "start_time": 3501.16,
+        "end_time": 3503.85,
+        "comment": null,
+        "transmission_type": "readback",
+        "extracted_values": {
+          "readback_values": [
+            "ONE ZERO ZERO",
+            "FOUR"
+          ]
+        }
+      },
+      "response": {
+        "transmission_id": "L02F1-0548",
+        "from_entity": "F1-2",
+        "to_entities": [
+          "AAL94"
+        ],
+        "text": "AMERICAN NINETY FOUR HEAVY DESCEND AND MAINTAIN THREE THOUSAND",
+        "raw_text": "AMERICAN NINETY FOUR HEAVY DESCEND AND MAINTAIN THREE THOUSAND",
+        "start_time": 3549.78,
+        "end_time": 3552.1,
+        "comment": null,
+        "transmission_type": "instruction_altitude",
+        "extracted_values": {
+          "altitude": "THREE"
+        }
+      },
+      "instruction_type": null,
+      "requested_value": null,
+      "readback_value": null,
+      "readback_correct": null,
+      "response_time": 45.93000000000029
+    },
+    {
+      "exchange_id": "ex_003",
+      "exchange_type": "other",
+      "request": {
+        "transmission_id": "L02F1-0549",
+        "from_entity": "AAL94",
+        "to_entities": [
+          "F1-2"
+        ],
+        "text": "OUT OF SIX FOR THREE AMERICAN S NINETY FOUR HEAVY",
+        "raw_text": "OUT OF SIX FOR THREE AMERICAN (QUOTE S) NINETY FOUR HEAVY",
+        "start_time": 3552.67,
+        "end_time": 3554.81,
+        "comment": null,
+        "transmission_type": "readback",
+        "extracted_values": {
+          "readback_values": [
+            "SIX",
+            "THREE",
+            "FOUR"
+          ]
+        }
+      },
+      "response": {
+        "transmission_id": "L02F1-0559",
+        "from_entity": "F1-2",
+        "to_entities": [
+          "AAL94"
+        ],
+        "text": "AMERICAN NINETY FOUR HEAVY TURN RIGHT HEADING TWO TWO ZERO",
+        "raw_text": "AMERICAN NINETY FOUR HEAVY TURN RIGHT HEADING TWO TWO ZERO",
+        "start_time": 3606.66,
+        "end_time": 3608.7,
+        "comment": null,
+        "transmission_type": "instruction_heading",
+        "extracted_values": {
+          "heading": "TWO"
+        }
+      },
+      "instruction_type": null,
+      "requested_value": null,
+      "readback_value": null,
+      "readback_correct": null,
+      "response_time": 51.84999999999991
+    },
+    {
+      "exchange_id": "ex_004",
+      "exchange_type": "other",
+      "request": {
+        "transmission_id": "L02F1-0560",
+        "from_entity": "AAL94",
+        "to_entities": [
+          "F1-2"
+        ],
+        "text": "RIGHT TURN HEADING TWO TWO ZERO AMERICAN S NINETY FOUR HEAVY",
+        "raw_text": "RIGHT TURN HEADING TWO TWO ZERO AMERICAN (QUOTE S) NINETY FOUR HEAVY",
+        "start_time": 3609.42,
+        "end_time": 3612.01,
+        "comment": null,
+        "transmission_type": "readback",
+        "extracted_values": {
+          "readback_values": [
+            "TWO TWO ZERO",
+            "FOUR"
+          ]
+        }
+      },
+      "response": {
+        "transmission_id": "L02F1-0568",
+        "from_entity": "F1-2",
+        "to_entities": [
+          "AAL94"
+        ],
+        "text": "AMERICAN NINETY FOUR HEAVY TURN RIGHT HEADING TWO FIVE ZERO INTERCEPT TWO SEVEN LOCALIZER",
+        "raw_text": "AMERICAN NINETY FOUR HEAVY TURN RIGHT HEADING TWO FIVE ZERO INTERCEPT TWO \n   SEVEN LOCALIZER",
+        "start_time": 3643.83,
+        "end_time": 3647.2,
+        "comment": null,
+        "transmission_type": "instruction_heading",
+        "extracted_values": {
+          "heading": "TWO"
+        }
+      },
+      "instruction_type": null,
+      "requested_value": null,
+      "readback_value": null,
+      "readback_correct": null,
+      "response_time": 31.81999999999971
+    },
+    {
+      "exchange_id": "ex_005",
+      "exchange_type": "other",
+      "request": {
+        "transmission_id": "L02F1-0569",
+        "from_entity": "AAL94",
+        "to_entities": [
+          "F1-2"
+        ],
+        "text": "RIGHT TWO FIVE ZERO INTERCEPT THE LOCALIZER AMERICAN S NINETY FOUR HEAVY",
+        "raw_text": "RIGHT TWO FIVE ZERO INTERCEPT THE LOCALIZER AMERICAN (QUOTE S) NINETY \n   FOUR HEAVY",
+        "start_time": 3647.64,
+        "end_time": 3650.98,
+        "comment": null,
+        "transmission_type": "readback",
+        "extracted_values": {
+          "readback_values": [
+            "TWO FIVE ZERO",
+            "FOUR"
+          ]
+        }
+      },
+      "response": {
+        "transmission_id": "L02F1-0576",
+        "from_entity": "F1-2",
+        "to_entities": [
+          "AAL94"
+        ],
+        "text": "AMERICAN NINETY FOUR HEAVY SIX FROM RIPIT INTERCEPT THE LOCALIZER THREE THOUSAND OR ABOVE CLEARED I L S D M E TWO SEVEN APPROACH",
+        "raw_text": "AMERICAN NINETY FOUR HEAVY SIX FROM RIPIT INTERCEPT THE LOCALIZER THREE \n   THOUSAND OR ABOVE CLEARED I L S D M E TWO SEVEN APPROACH",
+        "start_time": 3685.22,
+        "end_time": 3690.62,
+        "comment": null,
+        "transmission_type": "clearance",
+        "extracted_values": {
+          "clearance": "I L S D M E TWO SEVEN APPROACH"
+        }
+      },
+      "instruction_type": null,
+      "requested_value": null,
+      "readback_value": null,
+      "readback_correct": null,
+      "response_time": 34.23999999999978
+    },
+    {
+      "exchange_id": "ex_006",
+      "exchange_type": "other",
+      "request": {
+        "transmission_id": "L02F1-0577",
+        "from_entity": "AAL94",
+        "to_entities": [
+          "F1-2"
+        ],
+        "text": "INTERCEPT THE LOCALIZER THREE OR ABOVE WE RE CLEARED FOR THE APPROACH AMERICAN S NINETY FOUR HEAVY",
+        "raw_text": "INTERCEPT THE LOCALIZER THREE OR ABOVE WE (QUOTE RE) CLEARED FOR THE \n   APPROACH AMERICAN (QUOTE S) NINETY FOUR HEAVY",
+        "start_time": 3691.26,
+        "end_time": 3695.49,
+        "comment": null,
+        "transmission_type": "readback",
+        "extracted_values": {
+          "readback_values": [
+            "THREE",
+            "FOUR"
+          ]
+        }
+      },
+      "response": {
+        "transmission_id": "L02F1-0582",
+        "from_entity": "F1-2",
+        "to_entities": [
+          "AAL94"
+        ],
+        "text": "AMERICAN NINETY FOUR HEAVY SPEED ONE SEVEN ZERO TO RIPIT",
+        "raw_text": "AMERICAN NINETY FOUR HEAVY SPEED ONE SEVEN ZERO TO RIPIT",
+        "start_time": 3711.7,
+        "end_time": 3714.07,
+        "comment": null,
+        "transmission_type": "other",
+        "extracted_values": {}
+      },
+      "instruction_type": null,
+      "requested_value": null,
+      "readback_value": null,
+      "readback_correct": null,
+      "response_time": 16.210000000000036
+    },
+    {
+      "exchange_id": "ex_007",
+      "exchange_type": "other",
+      "request": {
+        "transmission_id": "L02F1-0583",
+        "from_entity": "AAL94",
+        "to_entities": [
+          "F1-2"
+        ],
+        "text": "O K GOT IT NINETY FOUR HEAVY",
+        "raw_text": "O K GOT IT NINETY FOUR HEAVY",
+        "start_time": 3714.63,
+        "end_time": 3716.11,
+        "comment": null,
+        "transmission_type": "readback",
+        "extracted_values": {
+          "readback_values": [
+            "FOUR"
+          ]
+        }
+      },
+      "response": {
+        "transmission_id": "L02F1-0594",
+        "from_entity": "F1-2",
+        "to_entities": [
+          "AAL94"
+        ],
+        "text": "AMERICAN NINETY FOUR HEAVY CONTACT THE TOWER ONE ONE NINER POINT ONE",
+        "raw_text": "AMERICAN NINETY FOUR HEAVY CONTACT THE TOWER ONE ONE NINER POINT ONE",
+        "start_time": 3781.59,
+        "end_time": 3784.16,
+        "comment": null,
+        "transmission_type": "other",
+        "extracted_values": {}
+      },
+      "instruction_type": null,
+      "requested_value": null,
+      "readback_value": null,
+      "readback_correct": null,
+      "response_time": 65.48000000000002
+    }
+  ]
+}

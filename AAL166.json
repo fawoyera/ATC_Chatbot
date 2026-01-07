@@ -1,0 +1,871 @@
+{
+  "conversation_id": "conv_AAL166",
+  "aircraft_callsign": "AAL166",
+  "controllers": [
+    "F1-2"
+  ],
+  "start_time": 4577.16,
+  "end_time": 5104.35,
+  "duration": 527.1900000000005,
+  "turn_count": 24,
+  "exchange_count": 11,
+  "transmissions": [
+    {
+      "transmission_id": "L02F1-0669",
+      "from_entity": "AAL166",
+      "to_entities": [
+        "F1-2"
+      ],
+      "text": "APPROACH AMERICAN ONE SIXTY SIX WITH YOU LEVELING SIX THOUSAND WITH LIMA",
+      "raw_text": "APPROACH AMERICAN ONE SIXTY SIX WITH YOU LEVELING SIX THOUSAND WITH LIMA",
+      "start_time": 4577.16,
+      "end_time": 4580.74,
+      "comment": null,
+      "transmission_type": "check_in",
+      "extracted_values": {}
+    },
+    {
+      "transmission_id": "L02F1-0670",
+      "from_entity": "F1-2",
+      "to_entities": [
+        "AAL166"
+      ],
+      "text": "AMERICAN ONE SIXTY SIX BOSTON APPROACH ROGER FLY HEADING ONE ZERO ZERO MAINTAIN TWO ONE ZERO KNOTS",
+      "raw_text": "AMERICAN ONE SIXTY SIX BOSTON APPROACH ROGER FLY HEADING ONE ZERO ZERO \n   MAINTAIN TWO ONE ZERO KNOTS",
+      "start_time": 4580.83,
+      "end_time": 4585.29,
+      "comment": null,
+      "transmission_type": "instruction_heading",
+      "extracted_values": {
+        "heading": "ONE",
+        "altitude": "TWO"
+      }
+    },
+    {
+      "transmission_id": "L02F1-0671",
+      "from_entity": "AAL166",
+      "to_entities": [
+        "F1-2"
+      ],
+      "text": "K HEADING ONE ONE ZERO AND TWO HUNDRED AND TEN KNOTS AMERICAN ONE SIXTY SIX",
+      "raw_text": "K HEADING ONE ONE ZERO AND TWO HUNDRED AND TEN KNOTS AMERICAN ONE SIXTY \n   SIX",
+      "start_time": 4585.51,
+      "end_time": 4589.71,
+      "comment": null,
+      "transmission_type": null,
+      "extracted_values": {}
+    },
+    {
+      "transmission_id": "L02F1-0674",
+      "from_entity": "AAL166",
+      "to_entities": [
+        "F1-2"
+      ],
+      "text": "APPROACH AMERICAN ONE SIXTY SIX",
+      "raw_text": "APPROACH AMERICAN ONE SIXTY SIX",
+      "start_time": 4607.8,
+      "end_time": 4609.65,
+      "comment": null,
+      "transmission_type": "readback",
+      "extracted_values": {
+        "readback_values": [
+          "ONE",
+          "SIX"
+        ]
+      }
+    },
+    {
+      "transmission_id": "L02F1-0675",
+      "from_entity": "F1-2",
+      "to_entities": [
+        "AAL166"
+      ],
+      "text": "AMERICAN ONE SIXTY SIX BOSTON",
+      "raw_text": "AMERICAN ONE SIXTY SIX BOSTON",
+      "start_time": 4609.61,
+      "end_time": 4611.04,
+      "comment": null,
+      "transmission_type": "other",
+      "extracted_values": {}
+    },
+    {
+      "transmission_id": "L02F1-0676",
+      "from_entity": "AAL166",
+      "to_entities": [
+        "F1-2"
+      ],
+      "text": "SIR WHAT RUNWAY CAN WE EXPECT",
+      "raw_text": "SIR WHAT RUNWAY CAN WE EXPECT",
+      "start_time": 4611.22,
+      "end_time": 4613.29,
+      "comment": null,
+      "transmission_type": "readback",
+      "extracted_values": {}
+    },
+    {
+      "transmission_id": "L02F1-0677",
+      "from_entity": "F1-2",
+      "to_entities": [
+        "AAL166"
+      ],
+      "text": "AMERICAN ONE SIXTY SIX I L S D M E RUNWAY TWO SEVEN APPROACH",
+      "raw_text": "AMERICAN ONE SIXTY SIX I L S D M E RUNWAY TWO SEVEN APPROACH",
+      "start_time": 4613.37,
+      "end_time": 4616.38,
+      "comment": null,
+      "transmission_type": "other",
+      "extracted_values": {}
+    },
+    {
+      "transmission_id": "L02F1-0678",
+      "from_entity": "AAL166",
+      "to_entities": [
+        "F1-2"
+      ],
+      "text": "AMERICAN ONE SIXTY SIX ROGER",
+      "raw_text": "AMERICAN ONE SIXTY SIX ROGER",
+      "start_time": 4616.77,
+      "end_time": 4618.61,
+      "comment": null,
+      "transmission_type": "acknowledgment",
+      "extracted_values": {}
+    },
+    {
+      "transmission_id": "L02F1-0681",
+      "from_entity": "F1-2",
+      "to_entities": [
+        "AAL166"
+      ],
+      "text": "AMERICAN ONE SIXTY SIX FLY HEADING ONE TWO ZERO",
+      "raw_text": "AMERICAN ONE SIXTY SIX FLY HEADING ONE TWO ZERO",
+      "start_time": 4660.07,
+      "end_time": 4661.99,
+      "comment": null,
+      "transmission_type": "instruction_heading",
+      "extracted_values": {
+        "heading": "ONE"
+      }
+    },
+    {
+      "transmission_id": "L02F1-0682",
+      "from_entity": "AAL166",
+      "to_entities": [
+        "F1-2"
+      ],
+      "text": "ONE TWENTY AMERICAN ONE SIXTY SIX",
+      "raw_text": "ONE TWENTY AMERICAN ONE SIXTY SIX",
+      "start_time": 4662.24,
+      "end_time": 4664.36,
+      "comment": null,
+      "transmission_type": "readback",
+      "extracted_values": {
+        "readback_values": [
+          "ONE",
+          "ONE",
+          "SIX"
+        ]
+      }
+    },
+    {
+      "transmission_id": "L02F1-0685",
+      "from_entity": "F1-2",
+      "to_entities": [
+        "AAL166"
+      ],
+      "text": "AMERICAN ONE SIXTY SIX DESCEND AND MAINTAIN FOUR THOUSAND",
+      "raw_text": "AMERICAN ONE SIXTY SIX DESCEND AND MAINTAIN FOUR THOUSAND",
+      "start_time": 4685.91,
+      "end_time": 4688.26,
+      "comment": null,
+      "transmission_type": "instruction_altitude",
+      "extracted_values": {
+        "altitude": "FOUR"
+      }
+    },
+    {
+      "transmission_id": "L02F1-0686",
+      "from_entity": "AAL166",
+      "to_entities": [
+        "F1-2"
+      ],
+      "text": "DOWN TO FOUR THOUSAND AMERICAN ONE SIXTY SIX",
+      "raw_text": "DOWN TO FOUR THOUSAND AMERICAN ONE SIXTY SIX",
+      "start_time": 4688.22,
+      "end_time": 4690.74,
+      "comment": null,
+      "transmission_type": "readback",
+      "extracted_values": {
+        "readback_values": [
+          "FOUR",
+          "ONE",
+          "SIX"
+        ]
+      }
+    },
+    {
+      "transmission_id": "L02F1-0700",
+      "from_entity": "F1-2",
+      "to_entities": [
+        "AAL166"
+      ],
+      "text": "AMERICAN ONE SIXTY SIX TURN LEFT HEADING ZERO NINER ZERO REDUCE SPEED TO ONE SEVEN ZERO",
+      "raw_text": "AMERICAN ONE SIXTY SIX TURN LEFT HEADING ZERO NINER ZERO REDUCE SPEED TO \n   ONE SEVEN ZERO",
+      "start_time": 4770.63,
+      "end_time": 4774.03,
+      "comment": null,
+      "transmission_type": "instruction_heading",
+      "extracted_values": {
+        "heading": "ZERO"
+      }
+    },
+    {
+      "transmission_id": "L02F1-0701",
+      "from_entity": "AAL166",
+      "to_entities": [
+        "F1-2"
+      ],
+      "text": "LEFT ZERO NINE ZERO BACK TO ONE SEVENTY AMERICAN ONE SIXTY SIX",
+      "raw_text": "LEFT ZERO NINE ZERO BACK TO ONE SEVENTY AMERICAN ONE SIXTY SIX",
+      "start_time": 4774.16,
+      "end_time": 4777.57,
+      "comment": null,
+      "transmission_type": "readback",
+      "extracted_values": {
+        "readback_values": [
+          "ZERO NINE ZERO",
+          "ONE",
+          "ONE",
+          "SIX"
+        ]
+      }
+    },
+    {
+      "transmission_id": "L02F1-0702",
+      "from_entity": "F1-2",
+      "to_entities": [
+        "AAL166"
+      ],
+      "text": "AMERICAN ONE SIXTY SIX TURN RIGHT HEADING ONE NINER ZERO",
+      "raw_text": "AMERICAN ONE SIXTY SIX TURN RIGHT HEADING ONE NINER ZERO",
+      "start_time": 4814.24,
+      "end_time": 4816.74,
+      "comment": null,
+      "transmission_type": "instruction_heading",
+      "extracted_values": {
+        "heading": "ONE"
+      }
+    },
+    {
+      "transmission_id": "L02F1-0703",
+      "from_entity": "AAL166",
+      "to_entities": [
+        "F1-2"
+      ],
+      "text": "RIGHT TO ONE NINETY AMERICAN ONE SIXTY SIX",
+      "raw_text": "RIGHT TO ONE NINETY AMERICAN ONE SIXTY SIX",
+      "start_time": 4816.88,
+      "end_time": 4819.2,
+      "comment": null,
+      "transmission_type": "readback",
+      "extracted_values": {
+        "readback_values": [
+          "ONE",
+          "ONE",
+          "SIX"
+        ]
+      }
+    },
+    {
+      "transmission_id": "L02F1-0708",
+      "from_entity": "F1-2",
+      "to_entities": [
+        "AAL166"
+      ],
+      "text": "AMERICAN ONE SIXTY SIX TURN RIGHT HEADING TWO SIX ZERO INTERCEPT THE LOCALIZER TWO SEVEN",
+      "raw_text": "AMERICAN ONE SIXTY SIX TURN RIGHT HEADING TWO SIX ZERO INTERCEPT THE \n   LOCALIZER TWO SEVEN",
+      "start_time": 4845.34,
+      "end_time": 4848.84,
+      "comment": null,
+      "transmission_type": "instruction_heading",
+      "extracted_values": {
+        "heading": "TWO"
+      }
+    },
+    {
+      "transmission_id": "L02F1-0709",
+      "from_entity": "AAL166",
+      "to_entities": [
+        "F1-2"
+      ],
+      "text": "RIGHT TO TWO SIXTY TO INTERCEPT AMERICAN AH ONE SIXTY SIX",
+      "raw_text": "RIGHT TO TWO SIXTY TO INTERCEPT AMERICAN AH ONE SIXTY SIX",
+      "start_time": 4849.32,
+      "end_time": 4853.38,
+      "comment": null,
+      "transmission_type": "readback",
+      "extracted_values": {
+        "readback_values": [
+          "TWO",
+          "ONE",
+          "SIX"
+        ]
+      }
+    },
+    {
+      "transmission_id": "L02F1-0717",
+      "from_entity": "F1-2",
+      "to_entities": [
+        "AAL166"
+      ],
+      "text": "AMERICAN ONE SIXTY SIX THREE AND A HALF FROM LONER CROSS LONER THREE OR ABOVE CLEARED I L S D M E TWO SEVEN APPROACH SPEED ONE SEVEN ZERO UNTIL RIPIT",
+      "raw_text": "AMERICAN ONE SIXTY SIX THREE AND A HALF FROM LONER CROSS LONER THREE OR \n   ABOVE CLEARED I L S D M E TWO SEVEN APPROACH SPEED ONE SEVEN ZERO UNTIL \n   RIPIT",
+      "start_time": 4901.16,
+      "end_time": 4906.92,
+      "comment": null,
+      "transmission_type": "clearance",
+      "extracted_values": {
+        "clearance": "I L S D M E TWO SEVEN APPROACH"
+      }
+    },
+    {
+      "transmission_id": "L02F1-0718",
+      "from_entity": "AAL166",
+      "to_entities": [
+        "F1-2"
+      ],
+      "text": "AMERICAN ONE SIXTY SIX ROGER",
+      "raw_text": "AMERICAN ONE SIXTY SIX ROGER",
+      "start_time": 4907.63,
+      "end_time": 4909.56,
+      "comment": null,
+      "transmission_type": "acknowledgment",
+      "extracted_values": {}
+    },
+    {
+      "transmission_id": "L02F1-0734",
+      "from_entity": "F1-2",
+      "to_entities": [
+        "AAL166"
+      ],
+      "text": "AMERICAN ONE SIXTY SIX TRAFFIC LANDING RUNWAY TWO TWO LEFT WILL HOLD SHORT OF YOUR RUNWAY",
+      "raw_text": "AMERICAN ONE SIXTY SIX TRAFFIC LANDING RUNWAY TWO TWO LEFT WILL HOLD \n   SHORT OF YOUR RUNWAY",
+      "start_time": 4960.99,
+      "end_time": 4964.28,
+      "comment": null,
+      "transmission_type": "other",
+      "extracted_values": {}
+    },
+    {
+      "transmission_id": "L02F1-0735",
+      "from_entity": "AAL166",
+      "to_entities": [
+        "F1-2"
+      ],
+      "text": "AMERICAN ONE SIXTY SIX",
+      "raw_text": "AMERICAN ONE SIXTY SIX",
+      "start_time": 4964.57,
+      "end_time": 4965.79,
+      "comment": null,
+      "transmission_type": "readback",
+      "extracted_values": {
+        "readback_values": [
+          "ONE",
+          "SIX"
+        ]
+      }
+    },
+    {
+      "transmission_id": "L02F1-0769",
+      "from_entity": "F1-2",
+      "to_entities": [
+        "AAL166"
+      ],
+      "text": "AMERICAN ONE SIXTY SIX CONTACT THE TOWER ONE ONE NINER POINT ONE",
+      "raw_text": "AMERICAN ONE SIXTY SIX CONTACT THE TOWER ONE ONE NINER POINT ONE",
+      "start_time": 5100.4,
+      "end_time": 5103.13,
+      "comment": null,
+      "transmission_type": "other",
+      "extracted_values": {}
+    },
+    {
+      "transmission_id": "L02F1-0770",
+      "from_entity": "AAL166",
+      "to_entities": [
+        "F1-2"
+      ],
+      "text": "SIXTY SIX",
+      "raw_text": "SIXTY SIX",
+      "start_time": 5103.26,
+      "end_time": 5104.35,
+      "comment": null,
+      "transmission_type": null,
+      "extracted_values": {}
+    }
+  ],
+  "exchange_pairs": [
+    {
+      "exchange_id": "ex_000",
+      "exchange_type": "checkin_response",
+      "request": {
+        "transmission_id": "L02F1-0669",
+        "from_entity": "AAL166",
+        "to_entities": [
+          "F1-2"
+        ],
+        "text": "APPROACH AMERICAN ONE SIXTY SIX WITH YOU LEVELING SIX THOUSAND WITH LIMA",
+        "raw_text": "APPROACH AMERICAN ONE SIXTY SIX WITH YOU LEVELING SIX THOUSAND WITH LIMA",
+        "start_time": 4577.16,
+        "end_time": 4580.74,
+        "comment": null,
+        "transmission_type": "check_in",
+        "extracted_values": {}
+      },
+      "response": {
+        "transmission_id": "L02F1-0670",
+        "from_entity": "F1-2",
+        "to_entities": [
+          "AAL166"
+        ],
+        "text": "AMERICAN ONE SIXTY SIX BOSTON APPROACH ROGER FLY HEADING ONE ZERO ZERO MAINTAIN TWO ONE ZERO KNOTS",
+        "raw_text": "AMERICAN ONE SIXTY SIX BOSTON APPROACH ROGER FLY HEADING ONE ZERO ZERO \n   MAINTAIN TWO ONE ZERO KNOTS",
+        "start_time": 4580.83,
+        "end_time": 4585.29,
+        "comment": null,
+        "transmission_type": "instruction_heading",
+        "extracted_values": {
+          "heading": "ONE",
+          "altitude": "TWO"
+        }
+      },
+      "instruction_type": null,
+      "requested_value": null,
+      "readback_value": null,
+      "readback_correct": null,
+      "response_time": 0.09000000000014552
+    },
+    {
+      "exchange_id": "ex_001",
+      "exchange_type": "other",
+      "request": {
+        "transmission_id": "L02F1-0674",
+        "from_entity": "AAL166",
+        "to_entities": [
+          "F1-2"
+        ],
+        "text": "APPROACH AMERICAN ONE SIXTY SIX",
+        "raw_text": "APPROACH AMERICAN ONE SIXTY SIX",
+        "start_time": 4607.8,
+        "end_time": 4609.65,
+        "comment": null,
+        "transmission_type": "readback",
+        "extracted_values": {
+          "readback_values": [
+            "ONE",
+            "SIX"
+          ]
+        }
+      },
+      "response": {
+        "transmission_id": "L02F1-0675",
+        "from_entity": "F1-2",
+        "to_entities": [
+          "AAL166"
+        ],
+        "text": "AMERICAN ONE SIXTY SIX BOSTON",
+        "raw_text": "AMERICAN ONE SIXTY SIX BOSTON",
+        "start_time": 4609.61,
+        "end_time": 4611.04,
+        "comment": null,
+        "transmission_type": "other",
+        "extracted_values": {}
+      },
+      "instruction_type": null,
+      "requested_value": null,
+      "readback_value": null,
+      "readback_correct": null,
+      "response_time": -0.03999999999996362
+    },
+    {
+      "exchange_id": "ex_002",
+      "exchange_type": "other",
+      "request": {
+        "transmission_id": "L02F1-0676",
+        "from_entity": "AAL166",
+        "to_entities": [
+          "F1-2"
+        ],
+        "text": "SIR WHAT RUNWAY CAN WE EXPECT",
+        "raw_text": "SIR WHAT RUNWAY CAN WE EXPECT",
+        "start_time": 4611.22,
+        "end_time": 4613.29,
+        "comment": null,
+        "transmission_type": "readback",
+        "extracted_values": {}
+      },
+      "response": {
+        "transmission_id": "L02F1-0677",
+        "from_entity": "F1-2",
+        "to_entities": [
+          "AAL166"
+        ],
+        "text": "AMERICAN ONE SIXTY SIX I L S D M E RUNWAY TWO SEVEN APPROACH",
+        "raw_text": "AMERICAN ONE SIXTY SIX I L S D M E RUNWAY TWO SEVEN APPROACH",
+        "start_time": 4613.37,
+        "end_time": 4616.38,
+        "comment": null,
+        "transmission_type": "other",
+        "extracted_values": {}
+      },
+      "instruction_type": null,
+      "requested_value": null,
+      "readback_value": null,
+      "readback_correct": null,
+      "response_time": 0.07999999999992724
+    },
+    {
+      "exchange_id": "ex_003",
+      "exchange_type": "other",
+      "request": {
+        "transmission_id": "L02F1-0678",
+        "from_entity": "AAL166",
+        "to_entities": [
+          "F1-2"
+        ],
+        "text": "AMERICAN ONE SIXTY SIX ROGER",
+        "raw_text": "AMERICAN ONE SIXTY SIX ROGER",
+        "start_time": 4616.77,
+        "end_time": 4618.61,
+        "comment": null,
+        "transmission_type": "acknowledgment",
+        "extracted_values": {}
+      },
+      "response": {
+        "transmission_id": "L02F1-0681",
+        "from_entity": "F1-2",
+        "to_entities": [
+          "AAL166"
+        ],
+        "text": "AMERICAN ONE SIXTY SIX FLY HEADING ONE TWO ZERO",
+        "raw_text": "AMERICAN ONE SIXTY SIX FLY HEADING ONE TWO ZERO",
+        "start_time": 4660.07,
+        "end_time": 4661.99,
+        "comment": null,
+        "transmission_type": "instruction_heading",
+        "extracted_values": {
+          "heading": "ONE"
+        }
+      },
+      "instruction_type": null,
+      "requested_value": null,
+      "readback_value": null,
+      "readback_correct": null,
+      "response_time": 41.460000000000036
+    },
+    {
+      "exchange_id": "ex_004",
+      "exchange_type": "other",
+      "request": {
+        "transmission_id": "L02F1-0682",
+        "from_entity": "AAL166",
+        "to_entities": [
+          "F1-2"
+        ],
+        "text": "ONE TWENTY AMERICAN ONE SIXTY SIX",
+        "raw_text": "ONE TWENTY AMERICAN ONE SIXTY SIX",
+        "start_time": 4662.24,
+        "end_time": 4664.36,
+        "comment": null,
+        "transmission_type": "readback",
+        "extracted_values": {
+          "readback_values": [
+            "ONE",
+            "ONE",
+            "SIX"
+          ]
+        }
+      },
+      "response": {
+        "transmission_id": "L02F1-0685",
+        "from_entity": "F1-2",
+        "to_entities": [
+          "AAL166"
+        ],
+        "text": "AMERICAN ONE SIXTY SIX DESCEND AND MAINTAIN FOUR THOUSAND",
+        "raw_text": "AMERICAN ONE SIXTY SIX DESCEND AND MAINTAIN FOUR THOUSAND",
+        "start_time": 4685.91,
+        "end_time": 4688.26,
+        "comment": null,
+        "transmission_type": "instruction_altitude",
+        "extracted_values": {
+          "altitude": "FOUR"
+        }
+      },
+      "instruction_type": null,
+      "requested_value": null,
+      "readback_value": null,
+      "readback_correct": null,
+      "response_time": 21.550000000000182
+    },
+    {
+      "exchange_id": "ex_005",
+      "exchange_type": "other",
+      "request": {
+        "transmission_id": "L02F1-0686",
+        "from_entity": "AAL166",
+        "to_entities": [
+          "F1-2"
+        ],
+        "text": "DOWN TO FOUR THOUSAND AMERICAN ONE SIXTY SIX",
+        "raw_text": "DOWN TO FOUR THOUSAND AMERICAN ONE SIXTY SIX",
+        "start_time": 4688.22,
+        "end_time": 4690.74,
+        "comment": null,
+        "transmission_type": "readback",
+        "extracted_values": {
+          "readback_values": [
+            "FOUR",
+            "ONE",
+            "SIX"
+          ]
+        }
+      },
+      "response": {
+        "transmission_id": "L02F1-0700",
+        "from_entity": "F1-2",
+        "to_entities": [
+          "AAL166"
+        ],
+        "text": "AMERICAN ONE SIXTY SIX TURN LEFT HEADING ZERO NINER ZERO REDUCE SPEED TO ONE SEVEN ZERO",
+        "raw_text": "AMERICAN ONE SIXTY SIX TURN LEFT HEADING ZERO NINER ZERO REDUCE SPEED TO \n   ONE SEVEN ZERO",
+        "start_time": 4770.63,
+        "end_time": 4774.03,
+        "comment": null,
+        "transmission_type": "instruction_heading",
+        "extracted_values": {
+          "heading": "ZERO"
+        }
+      },
+      "instruction_type": null,
+      "requested_value": null,
+      "readback_value": null,
+      "readback_correct": null,
+      "response_time": 79.89000000000033
+    },
+    {
+      "exchange_id": "ex_006",
+      "exchange_type": "other",
+      "request": {
+        "transmission_id": "L02F1-0701",
+        "from_entity": "AAL166",
+        "to_entities": [
+          "F1-2"
+        ],
+        "text": "LEFT ZERO NINE ZERO BACK TO ONE SEVENTY AMERICAN ONE SIXTY SIX",
+        "raw_text": "LEFT ZERO NINE ZERO BACK TO ONE SEVENTY AMERICAN ONE SIXTY SIX",
+        "start_time": 4774.16,
+        "end_time": 4777.57,
+        "comment": null,
+        "transmission_type": "readback",
+        "extracted_values": {
+          "readback_values": [
+            "ZERO NINE ZERO",
+            "ONE",
+            "ONE",
+            "SIX"
+          ]
+        }
+      },
+      "response": {
+        "transmission_id": "L02F1-0702",
+        "from_entity": "F1-2",
+        "to_entities": [
+          "AAL166"
+        ],
+        "text": "AMERICAN ONE SIXTY SIX TURN RIGHT HEADING ONE NINER ZERO",
+        "raw_text": "AMERICAN ONE SIXTY SIX TURN RIGHT HEADING ONE NINER ZERO",
+        "start_time": 4814.24,
+        "end_time": 4816.74,
+        "comment": null,
+        "transmission_type": "instruction_heading",
+        "extracted_values": {
+          "heading": "ONE"
+        }
+      },
+      "instruction_type": null,
+      "requested_value": null,
+      "readback_value": null,
+      "readback_correct": null,
+      "response_time": 36.67000000000007
+    },
+    {
+      "exchange_id": "ex_007",
+      "exchange_type": "other",
+      "request": {
+        "transmission_id": "L02F1-0703",
+        "from_entity": "AAL166",
+        "to_entities": [
+          "F1-2"
+        ],
+        "text": "RIGHT TO ONE NINETY AMERICAN ONE SIXTY SIX",
+        "raw_text": "RIGHT TO ONE NINETY AMERICAN ONE SIXTY SIX",
+        "start_time": 4816.88,
+        "end_time": 4819.2,
+        "comment": null,
+        "transmission_type": "readback",
+        "extracted_values": {
+          "readback_values": [
+            "ONE",
+            "ONE",
+            "SIX"
+          ]
+        }
+      },
+      "response": {
+        "transmission_id": "L02F1-0708",
+        "from_entity": "F1-2",
+        "to_entities": [
+          "AAL166"
+        ],
+        "text": "AMERICAN ONE SIXTY SIX TURN RIGHT HEADING TWO SIX ZERO INTERCEPT THE LOCALIZER TWO SEVEN",
+        "raw_text": "AMERICAN ONE SIXTY SIX TURN RIGHT HEADING TWO SIX ZERO INTERCEPT THE \n   LOCALIZER TWO SEVEN",
+        "start_time": 4845.34,
+        "end_time": 4848.84,
+        "comment": null,
+        "transmission_type": "instruction_heading",
+        "extracted_values": {
+          "heading": "TWO"
+        }
+      },
+      "instruction_type": null,
+      "requested_value": null,
+      "readback_value": null,
+      "readback_correct": null,
+      "response_time": 26.140000000000327
+    },
+    {
+      "exchange_id": "ex_008",
+      "exchange_type": "other",
+      "request": {
+        "transmission_id": "L02F1-0709",
+        "from_entity": "AAL166",
+        "to_entities": [
+          "F1-2"
+        ],
+        "text": "RIGHT TO TWO SIXTY TO INTERCEPT AMERICAN AH ONE SIXTY SIX",
+        "raw_text": "RIGHT TO TWO SIXTY TO INTERCEPT AMERICAN AH ONE SIXTY SIX",
+        "start_time": 4849.32,
+        "end_time": 4853.38,
+        "comment": null,
+        "transmission_type": "readback",
+        "extracted_values": {
+          "readback_values": [
+            "TWO",
+            "ONE",
+            "SIX"
+          ]
+        }
+      },
+      "response": {
+        "transmission_id": "L02F1-0717",
+        "from_entity": "F1-2",
+        "to_entities": [
+          "AAL166"
+        ],
+        "text": "AMERICAN ONE SIXTY SIX THREE AND A HALF FROM LONER CROSS LONER THREE OR ABOVE CLEARED I L S D M E TWO SEVEN APPROACH SPEED ONE SEVEN ZERO UNTIL RIPIT",
+        "raw_text": "AMERICAN ONE SIXTY SIX THREE AND A HALF FROM LONER CROSS LONER THREE OR \n   ABOVE CLEARED I L S D M E TWO SEVEN APPROACH SPEED ONE SEVEN ZERO UNTIL \n   RIPIT",
+        "start_time": 4901.16,
+        "end_time": 4906.92,
+        "comment": null,
+        "transmission_type": "clearance",
+        "extracted_values": {
+          "clearance": "I L S D M E TWO SEVEN APPROACH"
+        }
+      },
+      "instruction_type": null,
+      "requested_value": null,
+      "readback_value": null,
+      "readback_correct": null,
+      "response_time": 47.779999999999745
+    },
+    {
+      "exchange_id": "ex_009",
+      "exchange_type": "other",
+      "request": {
+        "transmission_id": "L02F1-0718",
+        "from_entity": "AAL166",
+        "to_entities": [
+          "F1-2"
+        ],
+        "text": "AMERICAN ONE SIXTY SIX ROGER",
+        "raw_text": "AMERICAN ONE SIXTY SIX ROGER",
+        "start_time": 4907.63,
+        "end_time": 4909.56,
+        "comment": null,
+        "transmission_type": "acknowledgment",
+        "extracted_values": {}
+      },
+      "response": {
+        "transmission_id": "L02F1-0734",
+        "from_entity": "F1-2",
+        "to_entities": [
+          "AAL166"
+        ],
+        "text": "AMERICAN ONE SIXTY SIX TRAFFIC LANDING RUNWAY TWO TWO LEFT WILL HOLD SHORT OF YOUR RUNWAY",
+        "raw_text": "AMERICAN ONE SIXTY SIX TRAFFIC LANDING RUNWAY TWO TWO LEFT WILL HOLD \n   SHORT OF YOUR RUNWAY",
+        "start_time": 4960.99,
+        "end_time": 4964.28,
+        "comment": null,
+        "transmission_type": "other",
+        "extracted_values": {}
+      },
+      "instruction_type": null,
+      "requested_value": null,
+      "readback_value": null,
+      "readback_correct": null,
+      "response_time": 51.42999999999938
+    },
+    {
+      "exchange_id": "ex_010",
+      "exchange_type": "other",
+      "request": {
+        "transmission_id": "L02F1-0735",
+        "from_entity": "AAL166",
+        "to_entities": [
+          "F1-2"
+        ],
+        "text": "AMERICAN ONE SIXTY SIX",
+        "raw_text": "AMERICAN ONE SIXTY SIX",
+        "start_time": 4964.57,
+        "end_time": 4965.79,
+        "comment": null,
+        "transmission_type": "readback",
+        "extracted_values": {
+          "readback_values": [
+            "ONE",
+            "SIX"
+          ]
+        }
+      },
+      "response": {
+        "transmission_id": "L02F1-0769",
+        "from_entity": "F1-2",
+        "to_entities": [
+          "AAL166"
+        ],
+        "text": "AMERICAN ONE SIXTY SIX CONTACT THE TOWER ONE ONE NINER POINT ONE",
+        "raw_text": "AMERICAN ONE SIXTY SIX CONTACT THE TOWER ONE ONE NINER POINT ONE",
+        "start_time": 5100.4,
+        "end_time": 5103.13,
+        "comment": null,
+        "transmission_type": "other",
+        "extracted_values": {}
+      },
+      "instruction_type": null,
+      "requested_value": null,
+      "readback_value": null,
+      "readback_correct": null,
+      "response_time": 134.60999999999967
+    }
+  ]
+}
