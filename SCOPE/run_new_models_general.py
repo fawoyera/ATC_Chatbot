@@ -42,7 +42,7 @@ MODEL_REGISTRY = {
         "grad_accum":"4",
         "M_samples": "2",
     },
-    "qwen": {
+    "qwen2": {
         "model_id":  "Qwen/Qwen2.5-7B-Instruct",
         "shortname": "Qwen2.5-7B",
         "lr":        "1e-5",
@@ -51,30 +51,117 @@ MODEL_REGISTRY = {
         "grad_accum":"4",
         "M_samples": "2",
     },
+    "qwen": {
+    "model_id":  "Qwen/Qwen3-8B",
+    "shortname": "Qwen3-8B",
+    "lr":        "1e-5",
+    "epochs":    "3",
+    "batch":     "4",
+    "grad_accum":"4",
+    "M_samples": "2",
+    },
 }
 
 # ── Condition definitions ─────────────────────────────────────────────────────
+# All conditions use:
+#   lr = 2.48e-05 (Optuna-tuned; dominant hyperparameter at 80% importance)
+#   lambda values = Optuna-tuned for whichever losses are active
+#   lambda_ce = 1.0025 for compliance conditions (C5–C11)
+#   lambda_ce = 1.0 for baselines (C1–C3) — compliance losses are off
+# checkpoint_metric, early_stop_patience, warmup_ratio are set in `common`
+# and apply to all conditions uniformly.
+
 CONDITIONS = {
+    # ── Baselines ─────────────────────────────────────────────────────────
+    "C1": {
+        "label": "Vanilla",
+        "kind":  "train",
+        "extra": ["--lr", "6.35e-06", "--lambda_ce", "1.0",
+                  "--epochs", "0", "--no_ltok", "--no_lphr", "--no_lcfg"],
+    },
     "C2": {
         "label": "Standard SFT",
         "kind":  "train",
-        "extra": ["--lambda_ce", "1.0", "--no_ltok", "--no_lphr", "--no_lcfg"],   # pure L_CE only (matches GPT-2 C2)
+        "extra": ["--lr", "6.35e-06", "--lambda_ce", "1.0",
+                  "--no_ltok", "--no_lphr", "--no_lcfg"],
     },
     "C3": {
         "label": "DPO",
         "kind":  "train",
-        "extra": ["--lambda_ce", "1.0", "--dpo", "--dpo_beta", "0.1",
-                  "--no_ltok", "--no_lphr", "--no_lcfg"],   # DPO only (matches GPT-2 C3)
+        "extra": ["--lr", "6.35e-06", "--lambda_ce", "1.0",
+                  "--dpo", "--dpo_beta", "0.1",
+                  "--no_ltok", "--no_lphr", "--no_lcfg"],
     },
-    "C11": {
-        "label": "SCOPE-full (proposed)",
+    # ── Ablation: single-level ─────────────────────────────────────────────
+    # Tuned lambda for each active loss; lambda_ce = tuned value (1.0025)
+    "C5": {
+        "label": "SCOPE-tok",
         "kind":  "train",
-        "extra": ["--lambda_ce", "0.5"],
+        "extra": ["--lr", "6.35e-06",
+                  "--lambda_ce", "1.0960", "--lambda_tok", "0.8210",
+                  "--no_lphr", "--no_lcfg"],
     },
+    "C6": {
+        "label": "SCOPE-phr-REINFORCE",
+        "kind":  "train",
+        "extra": ["--lr", "6.35e-06",
+                  "--lambda_ce", "1.0960", "--lambda_phr", "0.5732",
+                  "--no_ltok", "--no_lcfg", "--M_samples", "1"],
+    },
+    "C7": {
+        "label": "SCOPE-phr-GRPO",
+        "kind":  "train",
+        "extra": ["--lr", "6.35e-06",
+                  "--lambda_ce", "1.0960", "--lambda_phr", "0.5732",
+                  "--no_ltok", "--no_lcfg", "--M_samples", "4"],
+    },
+    "C8": {
+        "label": "SCOPE-cfg",
+        "kind":  "train",
+        "extra": ["--lr", "6.35e-06",
+                  "--lambda_ce", "1.0960", "--lambda_cfg", "1.8532",
+                  "--no_ltok", "--no_lphr", "--M_samples", "4"],
+    },
+    # ── Ablation: two-level ────────────────────────────────────────────────
+    "C9": {
+        "label": "SCOPE-2L",
+        "kind":  "train",
+        "extra": ["--lr", "6.35e-06",
+                  "--lambda_ce", "1.0960", "--lambda_tok", "0.8210",
+                  "--lambda_phr", "0.5732", "--no_lcfg", "--M_samples", "4"],
+    },
+    "C10": {
+        "label": "SCOPE-REINFORCE",
+        "kind":  "train",
+        "extra": ["--lr", "6.35e-06",
+                  "--lambda_ce", "1.0960", "--lambda_tok", "0.8210",
+                  "--lambda_phr", "0.5732", "--lambda_cfg", "1.8532",
+                  "--M_samples", "1"],
+    },
+    # ── Proposed method (single C11, tuned weights) ───────────────────────
+    "C11": {
+        "label": "SCOPE-full (tuned)",
+        "kind":  "train",
+        "extra": ["--lr", "6.35e-06",
+                  "--lambda_ce", "1.0960", "--lambda_tok", "0.8210",
+                  "--lambda_phr", "0.5732", "--lambda_cfg", "1.8532",
+                  "--gradnorm", "--M_samples", "4"],
+    },
+    # ── GCD inference-time baselines ──────────────────────────────────────
     "C4": {
         "label": "GCD on SFT",
         "kind":  "gcd",
-        "source": "C2",   # apply GCD to C2/best
+        "source": "C2",
+    },
+    "C4a": {
+        "label": "GCD Vanilla",
+        "kind":  "gcd",
+        "source": "C1",
+    },
+    "C4b": {
+        "label": "SCOPE+GCD",
+        "kind":  "gcd",
+        "source": "C11",
     },
 }
 
@@ -119,11 +206,14 @@ def load_metrics(results_path):
     return None
 
 def print_metrics(cond_id, label, r):
-    if r:
-        print(f"    {cond_id} {label}: "
-              f"C_tok={r.get('C_tok',0):.4f}  "
-              f"C_phr={r.get('C_phr',0):.4f}  "
-              f"C_cfg={r.get('C_cfg',0):.4f}")
+    if not r:
+        return
+    print(f"    {cond_id} {label}:")
+    print(f"      C_tok={r.get('C_tok',0):.4f}  C_phr={r.get('C_phr',0):.4f}  "
+          f"C_cfg={r.get('C_cfg',0):.4f}  C_bar={r.get('C_bar',0):.4f}")
+    if any(k in r for k in ('slot_f1','da_f1','halluc_pct','bertscore')):
+        print(f"      SlotF1={r.get('slot_f1',0):.4f}  DA-F1={r.get('da_f1',0):.4f}  "
+              f"Hall%={r.get('halluc_pct',0):.3f}  BERT={r.get('bertscore',0):.4f}")
 
 # ── Run one condition for one model ──────────────────────────────────────────
 def run_condition(cond_id, model_key, model_info, args, out_root):
@@ -147,39 +237,61 @@ def run_condition(cond_id, model_key, model_info, args, out_root):
             return None
         cmd = [
             py, args.gcd_script,
-            "--model",   str(src_ckpt),
-            "--data",    args.test_data,
-            "--grammar", args.grammar,
-            "--output",  str(cond_dir),
-            "--vocab",   args.vocab_path,
-            "--phrase",  args.phrase_path,
-            "--domain",  args.domain,
+            "--model",           str(src_ckpt),
+            "--data",            args.test_data,
+            "--grammar",         args.grammar,
+            "--output",          str(cond_dir),
+            "--vocab",           args.vocab_path,
+            "--phrase",          args.phrase_path,
+            "--domain",          args.domain,
+            "--bertscore_model", args.bertscore_model,
         ]
 
     else:  # train condition
+        # Determine model-specific flags
+        is_instruct = model_key in ("llama", "qwen", "qwen2")
+        model_flags = []
+        if is_instruct:
+            model_flags += ["--use_chat_template", "--gradient_checkpointing"]
+
+        cond_extra = cond.get("extra", [])
+        # Allow CLI overrides of model registry defaults
+        eff_epochs     = args.epochs     if args.epochs     else model_info["epochs"]
+        eff_batch      = args.batch_size if args.batch_size else model_info["batch"]
+        eff_accum      = args.grad_accum if args.grad_accum else model_info["grad_accum"]
+        eff_M          = args.M_samples  if args.M_samples  else model_info["M_samples"]
+        eff_seed       = args.seed       if args.seed       else "42"
+        # Base lr: CLI override > model registry; per-condition --lr in extra wins
+        eff_lr         = args.lr         if args.lr         else model_info["lr"]
+        has_lr_override = "--lr" in cond_extra
+
         common = [
             "--model",      model_info["model_id"],
+            "--train_data", args.train_data if args.train_data else "",
+            "--val_data",   args.val_data   if args.val_data   else "",
             "--data",       args.data,
             "--test_data",  args.test_data,
             "--output",     str(cond_dir),
-            "--epochs",     model_info["epochs"],
-            "--batch_size", model_info["batch"],
-            "--grad_accum", model_info["grad_accum"],
-            "--lr",         model_info["lr"],
-            "--M_samples",  model_info["M_samples"],
+            "--epochs",     eff_epochs,
+            "--batch_size", eff_batch,
+            "--grad_accum", eff_accum,
+            "--M_samples",  eff_M,
             "--max_new_tok","64",
-            "--seed",       "42",
-            "--lambda_tok", "1.0",
-            "--lambda_phr", "0.5",
-            "--lambda_cfg", "0.3",
+            "--seed",       eff_seed,
             "--vocab_path", args.vocab_path,
             "--phrase_path",args.phrase_path,
             "--grammar",    args.grammar,
             "--domain",     args.domain,
-            "--use_chat_template",
-            "--gradient_checkpointing",
-        ]
-        cmd = [py, args.train_script] + common + cond["extra"]
+            "--checkpoint_metric",   "c_bar",
+            "--early_stop_patience", "2",
+            "--warmup_ratio",        "0.1",
+            "--bertscore_model",     args.bertscore_model,
+        ] + model_flags + (
+            [] if has_lr_override else ["--lr", eff_lr]
+        ) + (
+            ["--finetune_bert"] if getattr(args, "finetune_bert", False) else []
+        )
+        cmd = [py, args.train_script] + common + cond_extra
 
     ok = run_subprocess(cmd, cond_dir / "run.log", label)
     if ok:
@@ -190,19 +302,36 @@ def run_condition(cond_id, model_key, model_info, args, out_root):
 
 # ── Summary table ─────────────────────────────────────────────────────────────
 def print_summary(all_results, gpt2_results=None):
-    print(f"\n\n{'='*78}")
-    print(f"{'MULTI-MODEL RESULTS SUMMARY':^78}")
-    print(f"{'='*78}")
-    print(f"{'Model':<16} {'Method':<25} {'C_tok':>6} {'C_phr':>6} {'C_cfg':>6}")
-    print("-" * 78)
+    W = 100
+    print(f"\n\n{'='*W}")
+    print(f"{'RESULTS — ATC':^{W}}")
+    print(f"{'='*W}")
+
+    # Header — two rows to keep line width manageable
+    print(f"  {'Model':<14} {'Condition':<22} "
+          f"{'C_tok':>6} {'C_phr':>6} {'C_cfg':>6} {'C_bar':>6} "
+          f"{'SlotF1':>7} {'DA-F1':>7} {'Hall%':>6} {'BERT':>6}")
+    print("-" * W)
+
+    def _row(shortname, cid, label, r, marker=""):
+        if r is None:
+            return
+        cbar = r.get('C_bar', (r.get('C_tok',0)+r.get('C_phr',0)+r.get('C_cfg',0))/3)
+        has_sem = any(k in r for k in ('slot_f1','da_f1','halluc_pct','bertscore'))
+        sem = (f"{r.get('slot_f1',0):>7.4f} {r.get('da_f1',0):>7.4f} "
+               f"{r.get('halluc_pct',0):>6.3f} {r.get('bertscore',0):>6.4f}"
+               if has_sem else
+               f"{'—':>7} {'—':>7} {'—':>6} {'—':>6}")
+        print(f"  {shortname:<14} {label:<22} "
+              f"{r.get('C_tok',0):>6.4f} {r.get('C_phr',0):>6.4f} "
+              f"{r.get('C_cfg',0):>6.4f} {cbar:>6.4f} "
+              f"{sem}{marker}")
 
     # GPT-2 reference rows
     if gpt2_results:
         for cid, r in gpt2_results.items():
-            label = CONDITIONS.get(cid, {}).get("label", cid)
-            print(f"  {'GPT-2 Large':<14} {label:<25} "
-                  f"{r.get('C_tok',0):>6.4f} {r.get('C_phr',0):>6.4f} "
-                  f"{r.get('C_cfg',0):>6.4f}")
+            label = CONDITIONS.get(cid, {}).get("label", cid)[:22]
+            _row("GPT-2 Large", cid, label, r)
         print()
 
     for model_key, cond_results in all_results.items():
@@ -210,14 +339,12 @@ def print_summary(all_results, gpt2_results=None):
         for cid, r in cond_results.items():
             if r is None:
                 continue
-            label = CONDITIONS.get(cid, {}).get("label", cid)
+            label = CONDITIONS.get(cid, {}).get("label", cid)[:22]
             marker = " ◀" if cid == "C11" else ""
-            print(f"  {shortname:<14} {label:<25} "
-                  f"{r.get('C_tok',0):>6.4f} {r.get('C_phr',0):>6.4f} "
-                  f"{r.get('C_cfg',0):>6.4f}{marker}")
+            _row(shortname, cid, label, r, marker)
         print()
 
-    print("=" * 78)
+    print("=" * W)
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 def main():
@@ -228,18 +355,37 @@ def main():
     parser.add_argument("--output_root",  default="results_new_models")
     parser.add_argument("--data",         default="atc_pairs.json")
     parser.add_argument("--test_data",    default="atc_test.json")
+    # [CHANGE: PRE-SPLIT] fixed split files for reproducible ablation
+    parser.add_argument("--train_data",   default="",
+                        help="Pre-split train file (use with --val_data). "
+                             "Takes priority over --data when set.")
+    parser.add_argument("--val_data",     default="",
+                        help="Pre-split validation file.")
+    parser.add_argument("--bertscore_model", default="bert-base-uncased",
+                        help="BERTScore encoder — use domain fine-tuned path after first run")
+    parser.add_argument("--finetune_bert", action="store_true",
+                        help="Fine-tune BERT on domain corpus for BERTScore (cached after first run)")
     parser.add_argument("--train_script", default="scope_train_general.py")
     parser.add_argument("--gcd_script",   default="evaluate_gcd_general.py")
     parser.add_argument("--grammar",      default="G_ATC.lark")
-    parser.add_argument("--vocab_path",   default="vocab_ATC.json",
-                        help="Vocabulary whitelist JSON (V_domain)")
-    parser.add_argument("--phrase_path",  default="ngram_whitelist_ATC.json",
-                        help="N-gram whitelist JSON (P_domain)")
-    parser.add_argument("--domain",       default="atc",
-                        choices=["atc", "smcp"],
-                        help="Domain for system prompt")
-    parser.add_argument("--gpt2_results", default="results2",
-                        help="Path to GPT-2 results for comparison table")
+    parser.add_argument("--vocab_path",   default="vocab_ATC.json")
+    parser.add_argument("--phrase_path",  default="ngram_whitelist_ATC.json")
+    parser.add_argument("--domain",       default="atc", choices=["atc", "smcp"])
+    parser.add_argument("--gpt2_results", default="results2")
+    # Training args — allow override from run_train_all.py
+    # These are used to override MODEL_REGISTRY defaults when passed explicitly.
+    # If not passed, model_info values from the registry are used.
+    parser.add_argument("--epochs",      default=None,
+                        help="Override epochs from model registry")
+    parser.add_argument("--batch_size",  default=None,
+                        help="Override batch size from model registry")
+    parser.add_argument("--grad_accum",  default=None,
+                        help="Override grad_accum from model registry")
+    parser.add_argument("--lr",          default=None,
+                        help="Override base lr (per-condition lr still takes priority)")
+    parser.add_argument("--M_samples",   default=None,
+                        help="Override M_samples from model registry")
+    parser.add_argument("--seed",        default="42")
     args = parser.parse_args()
 
     hf_login()

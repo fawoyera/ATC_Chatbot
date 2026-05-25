@@ -426,12 +426,46 @@ def evaluate_gcd(model_path: str, data_path: str, grammar_path: str,
     mean_cphr = sum(cphr_scores) / len(cphr_scores)
     mean_ccfg = sum(ccfg_scores) / len(ccfg_scores)
 
+    # [CHANGE: SEMANTIC_METRICS] compute semantic/safety metrics
+    sem = {"slot_f1": 0.0, "da_f1": 0.0, "halluc_pct": 0.0, "bertscore": 0.0}
+    try:
+        import importlib.util as _ilu
+        _scope_file = Path(__file__).resolve().parent / "scope_train_general.py"
+        if _scope_file.exists():
+            _spec = _ilu.spec_from_file_location("scope_train", _scope_file)
+            _scope = _ilu.module_from_spec(_spec)
+            _spec.loader.exec_module(_scope)
+            _domain_spec = _scope.get_domain_spec(domain)
+            _sem_eval    = _scope.SemanticMetrics(
+                domain_spec=_domain_spec,
+                bertscore_model=getattr(args, "bertscore_model", "bert-base-uncased")
+                    if "args" in dir() else "bert-base-uncased",
+            )
+            sem, sem_per_ex = _sem_eval.compute(results)
+            # Merge per-example semantic scores into results for per_example JSON
+            for i, r in enumerate(results):
+                if i < len(sem_per_ex):
+                    r["slot_f1"]   = sem_per_ex[i]["slot_f1"]
+                    r["da_f1"]     = sem_per_ex[i]["da_f1"]
+                    r["halluc"]    = sem_per_ex[i]["halluc"]
+                    r["bertscore"] = sem_per_ex[i]["bertscore"]
+            print(f"  SlotF1={sem['slot_f1']:.4f}  DA-F1={sem['da_f1']:.4f}  "
+                  f"Hall={sem['halluc_pct']:.3f}  BERT={sem['bertscore']:.4f}")
+    except Exception as _e:
+        print(f"  WARNING: semantic metrics failed: {_e}")
+        sem = {"slot_f1": 0.0, "da_f1": 0.0, "halluc_pct": 0.0, "bertscore": 0.0}
+
     print(f"\n{'='*55}")
     print(f"GCD Evaluation Results ({len(results)} test examples)")
     print(f"{'='*55}")
-    print(f"  C_tok = {mean_ctok:.4f}")
-    print(f"  C_phr = {mean_cphr:.4f}")
-    print(f"  C_cfg = {mean_ccfg:.4f}")
+    print(f"  C_tok      = {mean_ctok:.4f}")
+    print(f"  C_phr      = {mean_cphr:.4f}")
+    print(f"  C_cfg      = {mean_ccfg:.4f}")
+    print(f"  C_bar      = {(mean_ctok+mean_cphr+mean_ccfg)/3:.4f}")
+    print(f"  Slot-F1    = {sem['slot_f1']:.4f}")
+    print(f"  DA-F1      = {sem['da_f1']:.4f}")
+    print(f"  Hall.%     = {sem['halluc_pct']:.4f}")
+    print(f"  BERTScore  = {sem['bertscore']:.4f}")
     print(f"{'='*55}")
 
     # ── Save ──────────────────────────────────────────────────────────────
@@ -445,6 +479,12 @@ def evaluate_gcd(model_path: str, data_path: str, grammar_path: str,
         "C_tok":       round(mean_ctok, 4),
         "C_phr":       round(mean_cphr, 4),
         "C_cfg":       round(mean_ccfg, 4),
+        "C_bar":       round((mean_ctok+mean_cphr+mean_ccfg)/3, 4),
+        # [CHANGE: SEMANTIC_METRICS]
+        "slot_f1":     round(sem["slot_f1"],    4),
+        "da_f1":       round(sem["da_f1"],      4),
+        "halluc_pct":  round(sem["halluc_pct"], 4),
+        "bertscore":   round(sem["bertscore"],  4),
         "per_example": results,
     }
 
@@ -489,6 +529,9 @@ if __name__ == "__main__":
     parser.add_argument("--domain",   default="atc",
                         choices=["atc", "smcp"],
                         help="Domain for system prompt (atc or smcp)")
+    # [CHANGE: SEMANTIC_METRICS]
+    parser.add_argument("--bertscore_model", default="bert-base-uncased",
+                        help="BERTScore encoder — use domain fine-tuned path for best results")
     args = parser.parse_args()
 
     evaluate_gcd(

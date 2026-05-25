@@ -1,0 +1,127 @@
+# ============================================================
+# requirements.txt — SCOPE Curriculum Learning Pipeline
+# ============================================================
+# Scripts covered:
+#   scope_train_curriculum.py
+#   run_all_conditions_curriculum.py
+#   run_new_models_curriculum.py
+#   run_train_all_curriculum.py
+#   evaluate_gcd_general.py
+#
+# Python:  >= 3.9  (dataclasses, typing, math.ceil all standard)
+# CUDA:    >= 12.1 (A100 40 GB; torch 2.2.x CUDA 12.1 wheels)
+#
+# Install:
+#   pip install -r requirements.txt
+#
+# GPU-specific torch install (A100, CUDA 12.1):
+#   pip install torch==2.2.2 --index-url https://download.pytorch.org/whl/cu121
+#   then: pip install -r requirements.txt --no-deps   # remaining packages only
+#
+# For Colab / Kaggle (CUDA pre-installed):
+#   pip install -r requirements.txt
+#
+# ============================================================
+
+# ── Core deep learning ──────────────────────────────────────
+# torch: bfloat16 on A100 stable from 2.1; torch.optim.AdamW;
+#   gradient_checkpointing_enable(); CUDA 12.1 wheels in 2.2.x
+torch>=2.1.0
+
+# transformers: Qwen3-8B support requires >= 4.40; get_cosine_schedule_with_warmup;
+#   AutoModelForCausalLM; BertForMaskedLM; BertTokenizerFast;
+#   gradient_checkpointing_enable() stable; use_cache flag
+transformers>=4.40.0
+
+# accelerate: required by transformers for device management and
+#   model loading even when not used directly; gradient checkpointing compat
+accelerate>=0.30.0
+
+# ── A100 40 GB memory optimisation ──────────────────────────
+# bitsandbytes: AdamW8bit reduces optimiser state memory ~4x for 8B models;
+#   CUDA 12.x support stable from 0.43; optional (graceful fallback to AdamW)
+#   Enable with --use_8bit_adam flag in scope_train_curriculum.py
+bitsandbytes>=0.43.0
+
+# ── Grammar parsing ──────────────────────────────────────────
+# lark: Earley parser for G_ATC / G_SMCP with ambiguity='resolve'
+#   and regex terminals for callsign/numerical ranges;
+#   NOTE: package name is 'lark' (not 'lark-parser') since v1.0
+lark>=1.1.0
+
+# ── Compliance and semantic metrics ─────────────────────────
+# bert_score: BERTScore computation used in SemanticMetrics._bertscore();
+#   bert_score.score() called with domain-adapted BERT encoder
+bert-score>=0.3.13
+
+# evaluate: HuggingFace evaluate library used in evaluate_gcd_general.py
+evaluate>=0.4.0
+
+# scipy: dependency of bert_score for cosine similarity and
+#   statistical computations
+scipy>=1.11.0
+
+# ── HuggingFace ecosystem ────────────────────────────────────
+# huggingface_hub: huggingface_hub.login() for gated model access
+#   (Llama-3.1-8B-Instruct requires HF token)
+huggingface_hub>=0.23.0
+
+# tokenizers: fast tokenizer backend for BertTokenizerFast and
+#   AutoTokenizer; version must be compatible with transformers
+tokenizers>=0.19.0
+
+# safetensors: required for loading Llama and Qwen3 checkpoints
+#   which use safetensors format instead of pytorch_model.bin
+safetensors>=0.4.0
+
+# sentencepiece: required by Llama tokenizer for BPE encoding
+sentencepiece>=0.1.99
+
+# ── Scientific and numerical ─────────────────────────────────
+# numpy: array operations throughout; pinned to 1.x — numpy 2.x
+#   has breaking API changes incompatible with torch 2.2 and matplotlib
+numpy>=1.24.0,<2.0.0
+
+# matplotlib: headless plotting in run_all_conditions_curriculum.py
+#   (matplotlib.use('Agg') for server environments without display)
+matplotlib>=3.7.0
+
+# ── General utilities ────────────────────────────────────────
+# tqdm: progress bars in transformers model downloads and training loops
+tqdm>=4.65.0
+
+# requests: HTTP for huggingface_hub model downloads
+requests>=2.31.0
+
+# packaging: version comparison used internally by transformers and torch
+packaging>=23.0
+
+# filelock: cache file locking for HuggingFace model cache
+filelock>=3.12.0
+
+# pyyaml: YAML parsing for transformers config files
+PyYAML>=6.0
+
+# regex: advanced regex for tokenizer implementations;
+#   required by the tokenizers package
+regex>=2023.0.0
+
+# protobuf: required by sentencepiece; pin to 4.x —
+#   protobuf 5.x breaks some HuggingFace library internals
+protobuf>=3.20.0,<5.0.0
+
+# ============================================================
+# Optional: LoRA / QLoRA for 8B models on A100 40 GB
+#   (required if --use_lora flag is added in future)
+peft>=0.11.0
+#
+# Optional: Flash Attention 2 (reduces attention memory ~10x)
+#   pip install flash-attn --no-build-isolation
+#   (CUDA toolkit headers required at install time)
+#
+# Optional: Optuna (for hyperparameter search)
+optuna>=3.6.0
+#
+# Optional: Weights & Biases (experiment tracking)
+wandb>=0.17.0
+# ============================================================

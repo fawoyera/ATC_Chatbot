@@ -46,18 +46,39 @@ def make_conditions(args):
     extra_args is a list of CLI flags to append to the scope_train_general.py call.
     """
     BASE = [
+        # pre-split files when provided; fallback to in-script split otherwise
+        "--train_data", args.train_data if getattr(args, "train_data", "") else "",
+        "--val_data",   args.val_data   if getattr(args, "val_data",   "") else "",
         "--data",       args.data,
         "--test_data",  args.test_data,
         "--epochs",     str(args.epochs),
         "--batch_size", str(args.batch_size),
-        "--lr",         str(args.lr),
+        "--grad_accum", str(getattr(args, "grad_accum", 1)),
         "--max_new_tok",str(args.max_new_tok),
         "--seed",       str(args.seed),
         "--vocab_path", args.vocab_path,
         "--phrase_path",args.phrase_path,
         "--grammar",    args.grammar,
         "--domain",     args.domain,
-    ]
+        # all conditions use c_bar checkpoint selection — same as C11
+        "--checkpoint_metric",   "c_bar",
+        "--early_stop_patience", str(getattr(args, "early_stop_patience", 2)),
+        "--warmup_ratio",        str(getattr(args, "warmup_ratio", 0.1)),
+        "--bertscore_model",     getattr(args, "bertscore_model", "bert-base-uncased"),
+        # Hallucination gate threshold — set to 1.0 to disable (required for
+        # GPT-2 which starts with high hallucination before SFT converges)
+        "--hallucination_threshold", str(getattr(args, "hallucination_threshold", 0.10)),
+    ] + (
+        # model-specific: only for instruct models (llama/qwen), not GPT-2
+        ["--use_chat_template"]      if getattr(args, "use_chat_template", False)      else []
+    ) + (
+        ["--gradient_checkpointing"] if getattr(args, "gradient_checkpointing", False) else []
+    ) + (
+        ["--finetune_bert"]          if getattr(args, "finetune_bert", False)           else []
+    )
+    # NOTE: --lr is NOT in BASE. Every condition in the list below sets its own
+    # --lr explicitly. This prevents duplicate-flag errors when conditions differ
+    # overrides lr with 2.48e-05 while other conditions use args.lr.
     GRPO = ["--M_samples", str(args.M_samples)]
 
     # DPO reference model: use base model by default (SFT ckpt set later at runtime)
@@ -65,101 +86,107 @@ def make_conditions(args):
 
     conditions = [
         # ── Baselines ─────────────────────────────────────────────────────
+        # C1–C3 use tuned lr. Lambda weights are irrelevant (compliance
+        # losses disabled) — lambda_ce=1.0 is the correct ablation value.
         ("C1",  "Vanilla",
-         "GPT-2 Large, no fine-tuning",
+         "Zero-shot baseline — no fine-tuning",
          "train",
-         ["--model", args.model, "--epochs", "0",
-          "--no_ltok", "--no_lphr", "--no_lcfg"]),
+         ["--model", args.model, "--lr", "2.56e-06",
+          "--epochs", "0", "--no_ltok", "--no_lphr", "--no_lcfg"]),
 
         ("C2",  "SFT",
-         "Standard instruction-tuned SFT (CE only)",
+         "Standard SFT — CE loss only",
          "train",
-         ["--model", args.model, "--lambda_ce", "1.0",
-          "--no_ltok", "--no_lphr", "--no_lcfg"]),
+         ["--model", args.model, "--lr", "2.56e-06",
+          "--lambda_ce", "1.0", "--no_ltok", "--no_lphr", "--no_lcfg"]),
 
         ("C3",  "DPO",
-         "Direct Preference Optimisation (synthetic C_tok preference pairs)",
+         "SFT + Direct Preference Optimisation (composite C_bar pairs)",
          "train",
-         ["--model", args.model, "--lambda_ce", "1.0",
-          "--no_ltok", "--no_lphr", "--no_lcfg",
+         ["--model", args.model, "--lr", "2.56e-06",
+          "--lambda_ce", "1.0", "--no_ltok", "--no_lphr", "--no_lcfg",
           "--dpo", "--dpo_beta", str(getattr(args, "dpo_beta", 0.1))]
          + (["--dpo_ref", dpo_ref] if dpo_ref else [])),
 
         # ── Ablation: single-level ─────────────────────────────────────────
+        # C5–C8 use tuned lr and tuned lambda for the active loss(es).
+        # lambda_ce uses the tuned value (1.0025) to match the full C11 setup.
         ("C5",  "SCOPE-tok",
-         "L_tok only — lexical constraint loss",
+         "L_tok only — lexical compliance (tuned λ)",
          "train",
-         ["--model", args.model, "--lambda_ce", "0.5",
-          "--lambda_tok", "1.0",
-          "--no_lphr", "--no_lcfg"]),
+         ["--model", args.model, "--lr", "2.56e-06",
+          "--lambda_ce", "0.9628", "--lambda_tok", "0.5453",
+          "--no_lphr", "--no_lcfg"] + GRPO),
 
         ("C6",  "SCOPE-phr-REINFORCE",
-         "L_phr REINFORCE (GRPO with M=1, no group normalisation)",
+         "L_phr REINFORCE M=1 — phrase compliance (tuned λ)",
          "train",
-         ["--model", args.model, "--lambda_ce", "0.5",
-          "--lambda_phr", "0.5",
-          "--no_ltok", "--no_lcfg",
-          "--M_samples", "1"]),   # M=1 → REINFORCE (no GRPO appended)
+         ["--model", args.model, "--lr", "2.56e-06",
+          "--lambda_ce", "0.9628", "--lambda_phr", "0.5354",
+          "--no_ltok", "--no_lcfg", "--M_samples", "1"]),
 
         ("C7",  "SCOPE-phr-GRPO",
-         "L_phr with GRPO (group-normalised advantage)",
+         "L_phr GRPO M=4 — phrase compliance (tuned λ)",
          "train",
-         ["--model", args.model, "--lambda_ce", "0.5",
-          "--lambda_phr", "0.5",
+         ["--model", args.model, "--lr", "2.56e-06",
+          "--lambda_ce", "0.9628", "--lambda_phr", "0.5354",
           "--no_ltok", "--no_lcfg"] + GRPO),
 
         ("C8",  "SCOPE-cfg",
-         "L_cfg only — syntactic CFG structural loss",
+         "L_cfg only — grammar compliance (tuned λ)",
          "train",
-         ["--model", args.model, "--lambda_ce", "0.5",
-          "--lambda_cfg", "0.3",
+         ["--model", args.model, "--lr", "2.56e-06",
+          "--lambda_ce", "0.9628", "--lambda_cfg", "0.9564",
           "--no_ltok", "--no_lphr"] + GRPO),
 
         # ── Ablation: two-level ────────────────────────────────────────────
         ("C9",  "SCOPE-2L",
-         "L_tok + L_phr (no L_cfg)",
+         "L_tok + L_phr (no L_cfg) — tuned λ",
          "train",
-         ["--model", args.model, "--lambda_ce", "0.5",
-          "--lambda_tok", "1.0", "--lambda_phr", "0.5",
-          "--no_lcfg"] + GRPO),
+         ["--model", args.model, "--lr", "2.56e-06",
+          "--lambda_ce", "0.9628", "--lambda_tok", "0.5453",
+          "--lambda_phr", "0.5454", "--no_lcfg"] + GRPO),
 
         ("C10", "SCOPE-REINFORCE",
-         "Full SCOPE with REINFORCE (M=1) instead of GRPO",
+         "Full SCOPE with REINFORCE M=1 — tuned λ",
          "train",
-         ["--model", args.model, "--lambda_ce", "0.5",
-          "--lambda_tok", "1.0", "--lambda_phr", "0.5", "--lambda_cfg", "0.3",
-          "--M_samples", "1"]),   # M=1 → REINFORCE (no GRPO appended)
+         ["--model", args.model, "--lr", "2.56e-06",
+          "--lambda_ce", "0.9628", "--lambda_tok", "0.5453",
+          "--lambda_phr", "0.5454", "--lambda_cfg", "0.9564",
+          "--M_samples", "1"]),
 
         # ── Proposed method ────────────────────────────────────────────────
-        ("C11", "SCOPE-full",
-         "Full three-level SCOPE (proposed method)",
+        # Single C11 using Optuna-tuned weights + GradNorm.
+        ("C11", "SCOPE-full (tuned)",
+         "Full SCOPE — Optuna-tuned λ, GradNorm, lr=2.56e-06 (proposed)",
          "train",
-         ["--model", args.model, "--lambda_ce", "0.5",
-          "--lambda_tok", "1.0", "--lambda_phr", "0.5", "--lambda_cfg", "0.3",
-          ] + GRPO),
+         ["--model", args.model, "--lr", "2.56e-06",
+          "--lambda_ce", "0.9628", "--lambda_tok", "0.5453",
+          "--lambda_phr", "0.5454", "--lambda_cfg", "0.9654",
+          "--gradnorm"] + GRPO),
 
         # ── GCD inference-time baselines ──────────────────────────────────
         ("C4",  "GCD",
          "Grammar-Constrained Decoding on SFT checkpoint",
          "gcd",
-         {"ckpt_source": "C2"}),   # apply GCD to C2/best
+         {"ckpt_source": "C2"}),
 
-        ("C4a",  "GCD_Vanilla",
+        ("C4a", "GCD_Vanilla",
          "Grammar-Constrained Decoding on Vanilla checkpoint",
          "gcd",
-         {"ckpt_source": "C1"}),   # apply GCD to C1/best
+         {"ckpt_source": "C1"}),
 
         ("C4b", "SCOPE+GCD",
          "Grammar-Constrained Decoding on SCOPE-full checkpoint",
          "gcd",
-         {"ckpt_source": "C11"}),  # apply GCD to C11/best
+         {"ckpt_source": "C11"}),
 
         ("C4c", "SCOPE+GCD_Vanilla",
          "Grammar-Constrained Decoding+Vanilla on SCOPE-full checkpoint",
          "gcd",
-         {"ckpt_source": "C11"}),  # apply GCD_vanilla to C11/best
+         {"ckpt_source": "C11"}),
 
-        # ── GAD inference-time baselines (Park et al. NeurIPS 2024) ─────────
+        # ── GAD inference-time baselines (Park et al. NeurIPS 2024) ───────
         ("C4_GAD",  "GAD (SFT)",
          "Grammar-Aligned Decoding (ASAp) on SFT checkpoint",
          "gad",
@@ -250,11 +277,14 @@ def run_condition(cond_id, label, description, kind, extra_args, base_args,
 def run_gcd_condition(cond_id, label, description, output_root,
                       gcd_script_path, ckpt_path, test_data_path,
                       grammar_path, max_new_tok=64, dry_run=False,
-                      vocab_path=None, phrase_path=None, domain="atc"):
+                      vocab_path=None, phrase_path=None, domain="atc",
+                      bertscore_model="bert-base-uncased"):
     """
     Run GCD evaluation on any trained checkpoint.
+    Works for all model types (GPT-2, Llama, Qwen) — evaluate_gcd_general.py
+    is model-agnostic.
     C4:  GCD on SFT checkpoint  (ckpt_path = results/C2/best)
-    C4a:  GCD on Vanilla checkpoint  (ckpt_path = results/C1/best)
+    C4a: GCD on Vanilla checkpoint  (ckpt_path = results/C1/best)
     C4b: GCD on SCOPE-full ckpt (ckpt_path = results/C11/best)
     C4c: GCD_vanilla on SCOPE-full ckpt (ckpt_path = results/C11/best)
     """
@@ -278,21 +308,21 @@ def run_gcd_condition(cond_id, label, description, output_root,
 
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    # Resolve vocab and phrase paths — use passed args or fall back to GCD script dir
     gcd_dir     = Path(gcd_script_path).parent
     vocab_path  = Path(vocab_path)  if vocab_path  else gcd_dir / "vocab_ATC.json"
     phrase_path = Path(phrase_path) if phrase_path else gcd_dir / "ngram_whitelist_ATC.json"
 
     cmd = [
         sys.executable, str(gcd_script_path),
-        "--model",   str(ckpt_path),
-        "--data",    str(test_data_path),
-        "--grammar", str(grammar_path),
-        "--output",  str(out_dir),
-        "--max_new", str(max_new_tok),
-        "--vocab",   str(vocab_path),
-        "--phrase",  str(phrase_path),
-        "--domain",  domain,
+        "--model",           str(ckpt_path),
+        "--data",            str(test_data_path),
+        "--grammar",         str(grammar_path),
+        "--output",          str(out_dir),
+        "--max_new",         str(max_new_tok),
+        "--vocab",           str(vocab_path),
+        "--phrase",          str(phrase_path),
+        "--domain",          domain,
+        "--bertscore_model", bertscore_model,
     ]
     _run_subprocess(cmd, out_dir / "gcd_eval.log", dry_run)
     return out_dir
@@ -369,7 +399,8 @@ def evaluate_condition(cond_id, label, out_dir, data_path,
                        script_path, test_split_path,
                        vocab_path="vocab_ATC.json",
                        phrase_path="ngram_whitelist_ATC.json",
-                       domain="atc"):
+                       domain="atc",
+                       bertscore_model="bert-base-uncased"):  # [CHANGE: SEMANTIC_METRICS]
     """
     Evaluate one condition on the test set and return metrics dict.
 
@@ -420,40 +451,60 @@ def evaluate_condition(cond_id, label, out_dir, data_path,
 
     print(f"  Evaluating {cond_id} ({label}) ← {model_path}")
     return _eval_inline(model_path, test_split_path, results_path, label,
-                        vocab_path=vocab_path, phrase_path=phrase_path, domain=domain)
+                        vocab_path=vocab_path, phrase_path=phrase_path,
+                        domain=domain, bertscore_model=bertscore_model)
 
 def _eval_inline(model_path, test_split_path, results_path, label,
                  vocab_path="vocab_ATC.json",
                  phrase_path="ngram_whitelist_ATC.json",
-                 domain="atc"):
-    """Inline evaluation — import training module functions directly."""
+                 domain="atc",
+                 bertscore_model="bert-base-uncased"):
+    """
+    Inline evaluation — import training module functions directly.
+    Computes compliance metrics (C_tok, C_phr, C_cfg) and semantic/safety
+    metrics (Slot-F1, DA-F1, Hallucination%, BERTScore).
+    """
     import importlib.util, torch, json
 
-    # Use scope_train_general (domain-agnostic)
     script_file = Path(__file__).resolve().parent / "scope_train_general.py"
     spec = importlib.util.spec_from_file_location("scope_train", script_file)
     scope = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(scope)
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device    = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     vocab     = scope.load_whitelist(Path(vocab_path))
     ngram_wl  = scope.load_ngram_whitelist(Path(phrase_path))
     cfg_parser = scope.load_grammar(scope.GRAMMAR_PATH)
+
+    # [CHANGE: SEMANTIC_METRICS] initialise domain-aware semantic evaluator
+    domain_spec = scope.get_domain_spec(domain)
+    sem_eval    = scope.SemanticMetrics(
+        domain_spec=domain_spec,
+        bertscore_model=bertscore_model,
+    )
 
     from transformers import AutoTokenizer, AutoModelForCausalLM
     tokenizer = AutoTokenizer.from_pretrained(model_path)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = "left"
+
+    # GPT-2 Conv1D layers produce random logits in bfloat16 —
+    # CE starts at ln(50257)=10.82 (pure random). Use float32 for GPT-2.
+    _is_gpt2 = "gpt2" in model_path.lower()
+    _dtype   = torch.float32 if _is_gpt2 else torch.bfloat16
+
     model = AutoModelForCausalLM.from_pretrained(
-        model_path, torch_dtype=torch.bfloat16
+        model_path, torch_dtype=_dtype
     ).to(device)
     model.eval()
 
     with open(test_split_path) as f:
         test_pairs = json.load(f)
 
-    results = []
+    results  = []
+    examples = []   # [CHANGE: SEMANTIC_METRICS]
+
     for p in test_pairs:
         item = scope.format_atc(p["request"], p["response"], domain=domain)
         tok  = tokenizer(item["instruction"], return_tensors="pt",
@@ -474,28 +525,52 @@ def _eval_inline(model_path, test_split_path, results_path, label,
             "C_phr":     scope.compute_cphr(toks, ngram_wl),
             "C_cfg":     scope.compute_ccfg_partial(text, cfg_parser),
         })
+        examples.append({
+            "request":   p["request"],
+            "reference": p["response"],
+            "generated": text,
+        })
+
+    # [CHANGE: SEMANTIC_METRICS] — compute() returns (aggregates, per_example_list)
+    sem, sem_per_ex = sem_eval.compute(examples)
+
+    # Merge per-example semantic scores into results for per_example JSON field
+    for i, r in enumerate(results):
+        if i < len(sem_per_ex):
+            r["slot_f1"]   = sem_per_ex[i]["slot_f1"]
+            r["da_f1"]     = sem_per_ex[i]["da_f1"]
+            r["halluc"]    = sem_per_ex[i]["halluc"]
+            r["bertscore"] = sem_per_ex[i]["bertscore"]
+
+    c_tok = sum(r["C_tok"] for r in results) / len(results)
+    c_phr = sum(r["C_phr"] for r in results) / len(results)
+    c_cfg = sum(r["C_cfg"] for r in results) / len(results)
 
     summary = {
-        "condition": label,
-        "n_test":    len(results),
-        "C_tok":     sum(r["C_tok"] for r in results) / len(results),
-        "C_phr":     sum(r["C_phr"] for r in results) / len(results),
-        "C_cfg":     sum(r["C_cfg"] for r in results) / len(results),
+        "condition":  label,
+        "n_test":     len(results),
+        "C_tok":      c_tok,
+        "C_phr":      c_phr,
+        "C_cfg":      c_cfg,
+        "C_bar":      (c_tok + c_phr + c_cfg) / 3.0,
+        # [CHANGE: SEMANTIC_METRICS]
+        "slot_f1":    sem["slot_f1"],
+        "da_f1":      sem["da_f1"],
+        "halluc_pct": sem["halluc_pct"],
+        "bertscore":  sem["bertscore"],
         "per_example": results,
     }
 
     with open(results_path, "w") as f:
         json.dump(summary, f, indent=2)
 
-    print(f"    C_tok={summary['C_tok']:.4f}  "
-          f"C_phr={summary['C_phr']:.4f}  "
-          f"C_cfg={summary['C_cfg']:.4f}")
+    print(f"    C_tok={c_tok:.4f}  C_phr={c_phr:.4f}  C_cfg={c_cfg:.4f}  "
+          f"SlotF1={sem['slot_f1']:.4f}  DA-F1={sem['da_f1']:.4f}  "
+          f"Hall={sem['halluc_pct']:.3f}  BERT={sem['bertscore']:.4f}")
 
-    # Free GPU memory so subsequent conditions don't OOM
     del model
     import torch as _torch
     _torch.cuda.empty_cache()
-
     return summary
 
 
@@ -903,25 +978,34 @@ def write_results_table(all_results, output_root):
 
 
 def print_summary_table(all_results):
-    """Print ASCII summary table to stdout."""
-    print("\n" + "="*65)
-    print(f"{'SCOPE RESULTS SUMMARY':^65}")
-    print("="*65)
-    print(f"{'Cond':<6} {'Method':<28} {'C_tok':>7} {'C_phr':>7} {'C_cfg':>7}")
-    print("-"*65)
-    for cid in ["C1","C2","C3","C4","C4a","C5","C7","C8","C9","C11","C4b","C4c"]:
+    W = 100
+    print(f"\n{'='*W}")
+    print(f"{'SCOPE RESULTS SUMMARY':^{W}}")
+    print(f"{'='*W}")
+    print(f"{'Cond':<8} {'Method':<22} "
+          f"{'C_tok':>6} {'C_phr':>6} {'C_cfg':>6} {'C_bar':>6} "
+          f"{'SlotF1':>7} {'DA-F1':>7} {'Hall%':>6} {'BERT':>6}")
+    print("-"*W)
+    order = ["C1","C2","C3","C5","C6","C7","C8","C9","C10",
+             "C11","C4","C4a","C4b","C4c"]
+    for cid in order:
         r = all_results.get(cid)
-        label = FULL_COND_LABELS.get(cid, cid)[:28]
+        label = FULL_COND_LABELS.get(cid, cid)[:22]
         if r:
-            print(f"{cid:<6} {label:<28} "
-                  f"{r['C_tok']:>7.4f} {r['C_phr']:>7.4f} {r['C_cfg']:>7.4f}")
+            cbar = r.get('C_bar', (r.get('C_tok',0)+r.get('C_phr',0)+r.get('C_cfg',0))/3)
+            has_sem = any(k in r for k in ('slot_f1','da_f1','halluc_pct','bertscore'))
+            sem = (f"{r.get('slot_f1',0):>7.4f} {r.get('da_f1',0):>7.4f} "
+                   f"{r.get('halluc_pct',0):>6.3f} {r.get('bertscore',0):>6.4f}"
+                   if has_sem else
+                   f"{'—':>7} {'—':>7} {'—':>6} {'—':>6}")
+            print(f"{cid:<8} {label:<22} "
+                  f"{r.get('C_tok',0):>6.4f} {r.get('C_phr',0):>6.4f} "
+                  f"{r.get('C_cfg',0):>6.4f} {cbar:>6.4f} {sem}")
         else:
-            print(f"{cid:<6} {label:<28} {'—':>7} {'—':>7} {'—':>7}")
-    print("="*65)
-    # Oracle
-    print(f"{'':6} {'Oracle ceiling':<28} "
-          f"{'0.8790':>7} {'0.7710':>7} {'0.2900':>7}")
-    print("="*65)
+            print(f"{cid:<8} {label:<22} "
+                  f"{'—':>6} {'—':>6} {'—':>6} {'—':>6} "
+                  f"{'—':>7} {'—':>7} {'—':>6} {'—':>6}")
+    print("="*W)
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
@@ -931,6 +1015,10 @@ def main():
     parser.add_argument("--data",        default="atc_pairs.json")
     parser.add_argument("--test_data",   default="atc_test.json",
                         help="Test split for final evaluation")
+    parser.add_argument("--train_data",  default="",
+                        help="Pre-split train file (takes priority over --data)")
+    parser.add_argument("--val_data",    default="",
+                        help="Pre-split validation file")
     parser.add_argument("--model",       default="gpt2-large")
     parser.add_argument("--epochs",      type=int,   default=5)
     parser.add_argument("--batch_size",  type=int,   default=16)
@@ -968,6 +1056,27 @@ def main():
                         help="Print commands without running")
     parser.add_argument("--conditions",  nargs="+",
                         help="Only run specific conditions e.g. --conditions C1 C2 C11")
+    # [CHANGE: SEMANTIC_METRICS]
+    parser.add_argument("--bertscore_model", default="bert-base-uncased",
+                        help="BERTScore encoder — use domain fine-tuned path after first run")
+    # model-specific flags
+    parser.add_argument("--use_chat_template",      action="store_true",
+                        help="Use tokenizer chat template (Llama/Qwen instruct models)")
+    parser.add_argument("--gradient_checkpointing", action="store_true",
+                        help="Enable gradient checkpointing (saves VRAM for 8B+ models)")
+    parser.add_argument("--grad_accum",  type=int, default=1,
+                        help="Gradient accumulation steps (use 4 for Llama)")
+    # training schedule
+    parser.add_argument("--early_stop_patience", type=int, default=2,
+                        help="Stop after N epochs without C_bar improvement")
+    parser.add_argument("--hallucination_threshold", type=float, default=0.10,
+                        help="Reject checkpoints where Hall%% exceeds this. "
+                             "Set to 1.0 to disable — required for GPT-2 which "
+                             "starts with Hall%%>0.90 before SFT converges.")
+    parser.add_argument("--warmup_ratio",  type=float, default=0.1,
+                        help="LR warmup as fraction of total steps")
+    parser.add_argument("--finetune_bert", action="store_true",
+                        help="Fine-tune BERT on domain corpus for BERTScore (run once, cached)")
     args = parser.parse_args()
 
     output_root = Path(args.output_root)
@@ -1014,6 +1123,7 @@ def main():
                     vocab_path=args.vocab_path,
                     phrase_path=args.phrase_path,
                     domain=args.domain,
+                    bertscore_model=getattr(args, "bertscore_model", "bert-base-uncased"),
                 )
             elif kind == "gad":
                 # GAD (ASAp) — Park et al. NeurIPS 2024
@@ -1064,6 +1174,7 @@ def main():
             vocab_path=args.vocab_path,
             phrase_path=args.phrase_path,
             domain=args.domain,
+            bertscore_model=getattr(args, "bertscore_model", "bert-base-uncased"),
         )
         if r:
             all_results[cond_id] = r

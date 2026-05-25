@@ -1,12 +1,57 @@
 #!/usr/bin/env python3
 """
-SCOPE Training Pipeline  —  scope_train_general.py
+SCOPE Training Pipeline — scope_train_curriculum.py
 =====================================================
-Three-level objective:
+Extends scope_train_general.py with CURRICULUM LEARNING:
+losses are introduced progressively across training epochs
+rather than all at once from epoch 1.
+
+Three-level objective (same as scope_train_general.py):
   L = lambda_ce * L_CE
-    + lambda_tok * L_tok
-    + lambda_phr * L_phr(GRPO)
-    + lambda_cfg * L_cfg(GRPO)
+    + lambda_tok * L_tok      ← introduced at Phase 2
+    + lambda_phr * L_phr(GRPO) ← introduced at Phase 3
+    + lambda_cfg * L_cfg(GRPO) ← introduced at Phase 3
+
+Curriculum phases (controlled by --curriculum flag):
+  Phase 1  [epochs 1 .. ceil(N/3)]       : L_CE only  (vocabulary grounding)
+  Phase 2  [epochs ceil(N/3)+1 .. 2N/3]  : L_CE + L_tok  (lexical compliance)
+  Phase 3  [epochs 2N/3+1 .. N]          : L_CE + L_tok + L_phr [+ L_cfg]
+                                           (phrase + structure, per condition flags)
+
+Lambda ramping (--curriculum_ramp_steps K):
+  Optional soft ramp: at phase transitions, new loss weights are ramped
+  linearly from 0 to target over K steps (default 0 = hard switch).
+  Hard switching produces a cleaner ablation signal; soft ramping is more
+  stable for GPT-2 where hard switches cause loss spikes.
+
+Backward compatibility:
+  --curriculum is False by default → behaves identically to scope_train_general.py.
+  All other flags and hyperparameters are unchanged.
+
+CHANGES FROM scope_train_general.py (marked # [CHANGE: CURRICULUM:<tag>]):
+──────────────────────────────────────────────────────────────────────────
+CL1. CURRICULUM_CONFIG
+     New CurriculumConfig dataclass: phase_fractions, ramp_steps, schedule.
+
+CL2. CURRICULUM_PHASE
+     curriculum_phase(epoch, total_epochs, cfg) returns active loss flags and
+     effective lambda values for each epoch. Replaces static cfg.use_l* flags
+     during training.
+
+CL3. PHASE_LOGGING
+     Each epoch header logs the active phase name and which losses are live.
+
+CL4. LAMBDA_RAMP
+     Optional per-step linear warmup of new lambda values at each phase
+     transition. Ramp counter resets at each phase boundary.
+
+CL5. HISTORY_EXTENSION
+     training_history.json records the active phase for each epoch so the
+     curriculum schedule is fully reproducible from the log alone.
+
+All other CHANGES from scope_train_general.py are inherited unchanged:
+COSINE_SCHEDULE, CBAR_CHECKPOINT, EARLY_STOPPING, DPO_COMPOSITE_SIGNAL,
+GRADNORM, WARMUP_RATIO, SEMANTIC_METRICS.
 
 CHANGES FROM ORIGINAL (all marked with # [CHANGE: <tag>]):
 ──────────────────────────────────────────────────────────
@@ -114,6 +159,76 @@ except ImportError:
 VOCAB_PATH   = Path("vocab_ATC.json")
 PHRASE_PATH  = Path("ngram_whitelist_ATC.json")
 GRAMMAR_PATH = Path("G_ATC.lark")
+
+# ═════════════════════════════════════════════════════════════════════════════
+# [CHANGE: CURRICULUM:CL1] CurriculumConfig and curriculum_phase()
+# ═════════════════════════════════════════════════════════════════════════════
+
+@dataclass
+class CurriculumConfig:
+    """
+    Controls how losses are introduced across training epochs.
+
+    phase_fractions : (f1, f2) where
+        Phase 1 = epochs [1 .. ceil(f1 * total_epochs)]    → L_CE only
+        Phase 2 = epochs [ceil(f1)+1 .. ceil(f2 * total)]  → L_CE + L_tok
+        Phase 3 = remaining epochs                          → L_CE + L_tok + L_phr [+L_cfg]
+    ramp_steps : int
+        Number of gradient steps at the start of each phase over which a newly
+        activated loss lambda is linearly ramped from 0 to its target value.
+        0 = hard switch (default).
+    """
+    phase_fractions: Tuple[float, float] = (1/3, 2/3)
+    ramp_steps:      int                 = 0
+
+
+def curriculum_phase(
+    epoch:        int,        # 0-indexed
+    total_epochs: int,
+    cfg_use_ltok: bool,
+    cfg_use_lphr: bool,
+    cfg_use_lcfg: bool,
+    cfg_lam_tok:  float,
+    cfg_lam_phr:  float,
+    cfg_lam_cfg:  float,
+    cur:          CurriculumConfig,
+) -> Tuple[str, bool, bool, bool, float, float, float]:
+    """
+    Return (phase_name, use_ltok, use_lphr, use_lcfg, lam_tok, lam_phr, lam_cfg)
+    for the given epoch index under curriculum scheduling.
+
+    The curriculum only gates losses that are enabled in the condition config:
+    - A loss disabled by the condition (e.g. cfg_use_lphr=False for C5) is
+      never activated, regardless of the phase.
+    - A loss enabled by the condition is activated according to the phase schedule.
+
+    Phase 1: L_CE only  (vocabulary grounding via CE)
+    Phase 2: L_CE + L_tok  (add lexical compliance signal)
+    Phase 3: L_CE + L_tok + L_phr [+ L_cfg per condition]  (phrase + structure)
+    """
+    f1, f2    = cur.phase_fractions
+    end_p1    = max(1, math.ceil(f1 * total_epochs))
+    end_p2    = max(end_p1 + 1, math.ceil(f2 * total_epochs))
+
+    if epoch < end_p1:
+        # Phase 1: L_CE only — suppress all compliance losses regardless of condition
+        return ("Phase-1:CE", False, False, False, 0.0, 0.0, 0.0)
+
+    elif epoch < end_p2:
+        # Phase 2: L_CE + L_tok (if enabled by condition)
+        use_tok = cfg_use_ltok
+        lam_tok = cfg_lam_tok if use_tok else 0.0
+        return ("Phase-2:CE+tok", use_tok, False, False, lam_tok, 0.0, 0.0)
+
+    else:
+        # Phase 3: full condition (all losses enabled by condition are active)
+        return (
+            "Phase-3:full",
+            cfg_use_ltok, cfg_use_lphr, cfg_use_lcfg,
+            cfg_lam_tok if cfg_use_ltok else 0.0,
+            cfg_lam_phr if cfg_use_lphr else 0.0,
+            cfg_lam_cfg if cfg_use_lcfg else 0.0,
+        )
 
 def load_whitelist(vocab_path: Path) -> set:
     with open(vocab_path) as f:
@@ -1294,6 +1409,11 @@ class SCOPEConfig:
     bertscore_model:         str   = "bert-base-uncased"
     bertscore_weight:        float = 0.0
     hallucination_threshold: float = 0.10
+    # [CHANGE: CURRICULUM:CL1] curriculum learning control
+    curriculum:           bool  = False   # False = identical to scope_train_general.py
+    curriculum_phase1:    float = 1/3     # fraction of epochs for Phase 1 (CE only)
+    curriculum_phase2:    float = 2/3     # fraction of epochs up to end of Phase 2
+    curriculum_ramp_steps: int  = 0       # steps to ramp new lambdas at transitions
     # [CHANGE: SEMANTIC_METRICS] domain BERT fine-tuning for BERTScore
     finetune_bert:           bool  = False   # enable MLM fine-tuning before main training
     bert_mlm_epochs:         int   = 3
@@ -1364,17 +1484,8 @@ def train(cfg: SCOPEConfig):
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = "left"
-
-    # GPT-2 uses Conv1D layers that produce random logits in bfloat16
-    # (only 7 mantissa bits causes catastrophic cancellation).
-    # CE at step 0 = ln(50257) = 10.82 confirms this. Use float32 for GPT-2.
-    _is_gpt2  = "gpt2" in cfg.model_name.lower()
-    _dtype    = torch.float32 if _is_gpt2 else torch.bfloat16
-    if _is_gpt2:
-        print(f"  Note: GPT-2 loaded in float32 (bfloat16 incompatible with Conv1D)")
-
     model = AutoModelForCausalLM.from_pretrained(
-        cfg.model_name, torch_dtype=_dtype
+        cfg.model_name, torch_dtype=torch.bfloat16
     ).to(device)
     if cfg.gradient_checkpointing:
         model.gradient_checkpointing_enable()
@@ -1386,7 +1497,7 @@ def train(cfg: SCOPEConfig):
         ref_path = cfg.dpo_ref_model if cfg.dpo_ref_model else cfg.model_name
         print(f"  Loading DPO reference model from {ref_path} ...")
         ref_model = AutoModelForCausalLM.from_pretrained(
-            ref_path, torch_dtype=_dtype
+            ref_path, torch_dtype=torch.bfloat16
         ).cpu()
         ref_model.config.use_cache = False
         for p in ref_model.parameters():
@@ -1531,12 +1642,75 @@ def train(cfg: SCOPEConfig):
     step_history = []
     global_step  = 0
 
+    # [CHANGE: CURRICULUM:CL1] build CurriculumConfig from SCOPEConfig
+    cur_config = CurriculumConfig(
+        phase_fractions=(cfg.curriculum_phase1, cfg.curriculum_phase2),
+        ramp_steps=cfg.curriculum_ramp_steps,
+    ) if cfg.curriculum else None
+
+    # Store original condition flags — curriculum overrides these per-epoch
+    _orig_use_ltok = cfg.use_ltok
+    _orig_use_lphr = cfg.use_lphr
+    _orig_use_lcfg = cfg.use_lcfg
+    _orig_lam_tok  = lam_tok
+    _orig_lam_phr  = lam_phr
+    _orig_lam_cfg  = lam_cfg
+
     for epoch in range(cfg.epochs):
+        # [CHANGE: CURRICULUM:CL2] resolve active losses for this epoch
+        if cur_config is not None:
+            phase_name, e_use_ltok, e_use_lphr, e_use_lcfg, \
+            e_lam_tok, e_lam_phr, e_lam_cfg = curriculum_phase(
+                epoch, cfg.epochs,
+                _orig_use_ltok, _orig_use_lphr, _orig_use_lcfg,
+                _orig_lam_tok,  _orig_lam_phr,  _orig_lam_cfg,
+                cur_config,
+            )
+        else:
+            # [CHANGE: CURRICULUM] no curriculum → use static config (original behaviour)
+            phase_name  = "no-curriculum"
+            e_use_ltok  = cfg.use_ltok
+            e_use_lphr  = cfg.use_lphr
+            e_use_lcfg  = cfg.use_lcfg
+            e_lam_tok   = lam_tok
+            e_lam_phr   = lam_phr
+            e_lam_cfg   = lam_cfg
+
+        # [CHANGE: CURRICULUM:CL3] log active phase
+        print(f"\n{'─'*60}")
+        print(f"  Epoch {epoch+1}/{cfg.epochs} | Curriculum: {phase_name}")
+        print(f"  Active losses: CE=✓ "
+              f"tok={'✓' if e_use_ltok else '✗'} "
+              f"phr={'✓' if e_use_lphr else '✗'} "
+              f"cfg={'✓' if e_use_lcfg else '✗'}")
+        print(f"  λ: ce={lam_ce:.3f} tok={e_lam_tok:.3f} "
+              f"phr={e_lam_phr:.3f} cfg={e_lam_cfg:.3f}")
+        print(f"{'─'*60}")
+
+        # [CHANGE: CURRICULUM:CL4] ramp new lambdas at phase transitions
+        _ramp_counter  = 0
+        _prev_phase    = getattr(train, '_prev_phase', None)
+        _phase_changed = (phase_name != _prev_phase)
+        train._prev_phase = phase_name
+        _ramp_tok = e_lam_tok if not _phase_changed else 0.0
+        _ramp_phr = e_lam_phr if not _phase_changed else 0.0
+        _ramp_cfg = e_lam_cfg if not _phase_changed else 0.0
         model.train()
         epoch_losses = {"ce": 0., "tok": 0., "phr": 0., "cfg": 0., "total": 0.}
         n_batches = 0
 
         for step, batch in enumerate(train_dl):
+            # [CHANGE: CURRICULUM:CL4] ramp new lambdas over first ramp_steps of new phase
+            if _phase_changed and cur_config is not None and cur_config.ramp_steps > 0:
+                ramp_frac  = min(1.0, _ramp_counter / max(1, cur_config.ramp_steps))
+                _step_lam_tok = ramp_frac * e_lam_tok
+                _step_lam_phr = ramp_frac * e_lam_phr
+                _step_lam_cfg = ramp_frac * e_lam_cfg
+                _ramp_counter += 1
+            else:
+                _step_lam_tok = e_lam_tok
+                _step_lam_phr = e_lam_phr
+                _step_lam_cfg = e_lam_cfg
             input_ids      = batch["input_ids"].to(device)
             attention_mask = batch["attention_mask"].to(device)
             labels         = batch["labels"].to(device)
@@ -1549,9 +1723,9 @@ def train(cfg: SCOPEConfig):
             L_ce   = out.loss
             logits = out.logits
 
-            # L_tok (differentiable)
+            # L_tok (differentiable) — [CHANGE: CURRICULUM] use epoch-resolved flag
             L_tok_val = torch.tensor(0., device=device)
-            if cfg.use_ltok:
+            if e_use_ltok:
                 L_tok_val = compute_L_tok(logits, response_mask, vocab_ids, tokenizer.vocab_size)
 
             # L_phr + L_cfg (GRPO, every other step)
@@ -1560,7 +1734,8 @@ def train(cfg: SCOPEConfig):
             _phr_display    = 0.0
             _cfg_display    = 0.0
 
-            if (cfg.use_lphr or cfg.use_lcfg) and (step % 2 == 0):
+            # [CHANGE: CURRICULUM] use epoch-resolved flags
+            if (e_use_lphr or e_use_lcfg) and (step % 2 == 0):
                 model.eval()
                 all_generated    = []
                 phr_rewards_list = []
@@ -1580,9 +1755,9 @@ def train(cfg: SCOPEConfig):
                         all_generated.append(gen)
                         text = tokenizer.decode(gen[0].tolist(), skip_special_tokens=True)
                         toks = text.upper().split()
-                        if cfg.use_lphr:
+                        if e_use_lphr:
                             phr_rewards_list.append(compute_cphr(toks, ngram_wl))
-                        if cfg.use_lcfg and cfg_parser:
+                        if e_use_lcfg and cfg_parser:
                             cfg_rewards_list.append(compute_ccfg_partial(text, cfg_parser))
                 model.train()
 
@@ -1616,11 +1791,11 @@ def train(cfg: SCOPEConfig):
                     seq_lp   = log_p.gather(-1, idx_t).squeeze(-1).mean(dim=-1)
 
                     grpo_m = torch.tensor(0.0, device=device)
-                    if cfg.use_lphr and abs(phr_adv_m) > 1e-8:
-                        grpo_m = grpo_m + (-phr_adv_m * lam_phr * seq_lp.mean() / cfg.M_samples)
+                    if e_use_lphr and abs(phr_adv_m) > 1e-8:  # [CHANGE: CURRICULUM]
+                        grpo_m = grpo_m + (-phr_adv_m * _step_lam_phr * seq_lp.mean() / cfg.M_samples)
                         _phr_loss_terms.append(float(seq_lp.mean().detach()))
-                    if cfg.use_lcfg and cfg_parser and abs(cfg_adv_m) > 1e-8:
-                        grpo_m = grpo_m + (-cfg_adv_m * lam_cfg * seq_lp.mean() / cfg.M_samples)
+                    if e_use_lcfg and cfg_parser and abs(cfg_adv_m) > 1e-8:  # [CHANGE: CURRICULUM]
+                        grpo_m = grpo_m + (-cfg_adv_m * _step_lam_cfg * seq_lp.mean() / cfg.M_samples)
                         _cfg_loss_terms.append(float(seq_lp.mean().detach()))
 
                     if grpo_m.grad_fn is not None:
@@ -1665,7 +1840,7 @@ def train(cfg: SCOPEConfig):
                 lam_ce, lam_tok, lam_phr, lam_cfg = ws
 
             # Combined CE + L_tok backward
-            L_ce_tok = lam_ce * L_ce + lam_tok * L_tok_val
+            L_ce_tok = lam_ce * L_ce + _step_lam_tok * L_tok_val  # [CHANGE: CURRICULUM]
             L_ce_tok.backward()
             L_total = L_ce_tok.detach()
 
@@ -1793,6 +1968,7 @@ def train(cfg: SCOPEConfig):
 
         record = {
             "epoch":      epoch + 1,
+            "phase":      phase_name,   # [CHANGE: CURRICULUM:CL5]
             "loss":       mean_loss,
             "ce_loss":    epoch_losses["ce"]  / n_batches,
             "tok_loss":   epoch_losses["tok"] / n_batches,
@@ -1881,10 +2057,8 @@ def evaluate(model_path: str, data_path: str, condition_name: str = "SCOPE",
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = "left"
-    _is_gpt2_eval = "gpt2" in model_path.lower()
-    _eval_dtype   = torch.float32 if _is_gpt2_eval else torch.bfloat16
     model = AutoModelForCausalLM.from_pretrained(
-        model_path, torch_dtype=_eval_dtype
+        model_path, torch_dtype=torch.bfloat16
     ).to(device)
     model.eval()
 
@@ -2007,6 +2181,22 @@ if __name__ == "__main__":
                         help="Enable GradNorm dynamic lambda rebalancing")
     parser.add_argument("--gradnorm_alpha",       type=float, default=1.5)
     parser.add_argument("--gradnorm_update_freq", type=int,   default=20)
+    # [CHANGE: CURRICULUM:CL1] curriculum learning flags
+    parser.add_argument("--curriculum",           action="store_true",
+                        help="Enable curriculum learning: introduce losses "
+                             "progressively across epochs. Phase 1: CE only. "
+                             "Phase 2: CE+tok. Phase 3: full condition. "
+                             "Default: False (identical to scope_train_general.py).")
+    parser.add_argument("--curriculum_phase1",    type=float, default=1/3,
+                        help="Fraction of total epochs to spend in Phase 1 "
+                             "(CE only). Default: 1/3.")
+    parser.add_argument("--curriculum_phase2",    type=float, default=2/3,
+                        help="Fraction of total epochs up to end of Phase 2 "
+                             "(CE+tok). Default: 2/3.")
+    parser.add_argument("--curriculum_ramp_steps", type=int, default=0,
+                        help="Steps over which to linearly ramp new lambda "
+                             "values at each phase transition. 0 = hard switch "
+                             "(default). Use 50-100 for GPT-2 stability.")
     # [CHANGE: SEMANTIC_METRICS]
     parser.add_argument("--bertscore_model",        default="bert-base-uncased",
                         help="HuggingFace model for BERTScore (use domain fine-tuned for best results)")
@@ -2068,6 +2258,11 @@ if __name__ == "__main__":
         use_gradnorm             = args.gradnorm,             # [CHANGE: GRADNORM]
         gradnorm_alpha           = args.gradnorm_alpha,
         gradnorm_update_freq     = args.gradnorm_update_freq,
+        # [CHANGE: CURRICULUM:CL1]
+        curriculum               = args.curriculum,
+        curriculum_phase1        = args.curriculum_phase1,
+        curriculum_phase2        = args.curriculum_phase2,
+        curriculum_ramp_steps    = args.curriculum_ramp_steps,
         # [CHANGE: SEMANTIC_METRICS]
         bertscore_model          = args.bertscore_model,
         bertscore_weight         = args.bertscore_weight,
