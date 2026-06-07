@@ -1,142 +1,218 @@
-# ATC Chatbot for UAV Operators
+# SCOPE: Hierarchical Grammar-Informed Optimization for Domain-Specific Language Models
 
-An AI-driven communication support system designed to assist **Unmanned Aerial Vehicle (UAV)** operators in navigating controlled airspace. This project fine-tunes causal language models to generate and validate Air Traffic Control (ATC) communications, ensuring compliance with strict aviation protocols.
+SCOPE is a hierarchical multi-objective optimization framework for language
+models in safety-critical communication domains e.g. air traffic communication (ATC), 
+maritime communication (SMCP). It jointly enforces three level compliance objectives 
+during training — **lexical**, **phraseological**, and **syntactic** — 
+without any inference-time constraint.
 
----
-
-## 📌 Project Overview
-
-Operating UAVs in controlled airspace requires precise adherence to ATC phraseology. This chatbot acts as a bridge, providing real-time communication support. We fine-tuned and compared three architectures:
-
-- **GPT-2** — Lightweight, fast, edge-deployable
-- **Llama-2** — Strong semantic understanding
-- **Qwen-3** — High vanilla baseline performance
-
-Each model was trained on the **ATC Corpus** dataset using both standard fine-tuning and **grammar-informed** training techniques to improve technical accuracy.
+> Paper: *SCOPE: Hierarchical Grammar-Informed Optimization for Domain-Specific
+> Language Models* — EMNLP 2026 (under review)
+>
+> Code: [anonymous.4open.science/r/ATC_Chatbot](#) *(anonymised for review)*
 
 ---
 
-## 📊 Evaluation Metrics
+## Results
 
-Models are evaluated based on four critical performance pillars:
+### Air Traffic Control (n = 131)
 
-1. **BERTScore** — Evaluates generated text quality against ground truth using contextual embeddings.
-2. **Semantic Similarity** — Measures how well the model captures the intent of ATC instructions.
-3. **ATC Token Compliance** — A custom metric verifying adherence to standard aviation phraseology and keywords.
-4. **Compute Time** — Benchmarks latency to ensure feasibility for real-time deployment.
+![ATC metrics](figures/atc_metrics.png)
+
+SCOPE achieves the best value on every metric except C_tok, where GCD scores
+higher by token masking — at the cost of a ~50% BERTScore collapse.
+
+### Maritime / SMCP (n = 54)
+
+![SMCP metrics](figures/smcp_metrics.png)
+
+SCOPE achieves near-ceiling semantics: DA-F1 = 0.999 and Slot-F1 = 0.994
+for Qwen3-8B, demonstrating transfer to a new regulatory domain from
+synthetic data alone.
 
 ---
 
-## 🚀 Getting Started
+## Repository Structure
 
-### Installation
+```
+SCOPE/
+│
+├── scope_train_general.py           # Standard training (non-curriculum)
+├── scope_train_curriculum.py        # Curriculum training
+├── run_all_conditions_general.py    # GPT-2: all 13 conditions
+├── run_all_conditions_curriculum.py # GPT-2: all 13 conditions, curriculum
+├── run_new_models_general.py        # Llama / Qwen3
+├── run_new_models_curriculum.py     # Llama / Qwen3, curriculum
+├── run_train_all.py                 # Top-level orchestrator
+├── run_train_all_curriculum.py      # Top-level orchestrator, curriculum
+├── evaluate_gcd_general.py          # Grammar-constrained decoding baseline
+├── cleanup_weights.py               # Delete weights, keep results
+├── requirements.txt
+│
+├── vocab_ATC.json                   # ATC vocabulary (2,062 tokens)
+├── ngram_whitelist_ATC.json         # ATC phrase whitelist (46,990 n-grams)
+├── G_ATC.lark                       # ATC grammar (60+ rules, Lark Earley)
+├── atc_pairs.json                   # ATC train + val pairs (832 / 104)
+├── atc_test.json                    # ATC test set (131 examples)
+│
+├── vocab_SMCP.json                  # Maritime vocabulary (258 tokens)
+├── ngram_whitelist_SMCP.json        # Maritime phrase whitelist (2,918 n-grams)
+├── G_SMCP.lark                      # Maritime grammar (58 rules, Lark Earley)
+├── smcp_pairs.json                  # Maritime train + val pairs (428 / 53)
+├── smcp_test.json                   # Maritime test set (54 examples)
+│
+└── figures/
+    ├── atc_metrics.png
+    └── smcp_metrics.png
+```
 
-Clone the repository and install the required dependencies:
+---
+
+## Installation
 
 ```bash
-git clone https://github.com/Purdue-AIDA3/ATC_Chatbot
+# 1. Install torch with CUDA support (A100, CUDA 12.1)
+pip install torch==2.2.2 --index-url https://download.pytorch.org/whl/cu121
+
+# 2. Install remaining dependencies
 pip install -r requirements.txt
+
+# 3. Authenticate for Llama (gated model)
+huggingface-cli login
 ```
 
-### Training
+For 8B models on a **single A100 40 GB**: add `--use_8bit_adam` to reduce
+optimizer state memory ~4×. For **2× A100 40 GB**: the script auto-detects
+both GPUs and uses `device_map="auto"` with 8-bit Adam automatically.
 
-Replace `[MODEL]` with `GPT`, `LLAMA`, or `QWEN` in the filenames as needed.
+---
 
-**Standard fine-tuning:**
+## Quick Start
+
+### Run SCOPE-full on ATC (Llama, single condition)
 
 ```bash
-python train/run_[MODEL]finetune_ATC.py
+python scope_train_curriculum.py \
+  --model       meta-llama/Llama-3.1-8B-Instruct \
+  --data        atc_pairs.json \
+  --test_data   atc_test.json \
+  --vocab_path  vocab_ATC.json \
+  --phrase_path ngram_whitelist_ATC.json \
+  --grammar     G_ATC.lark \
+  --domain      atc \
+  --output      results/llama/C11 \
+  --lr          2.48e-5 \
+  --epochs      5 --batch_size 4 --grad_accum 4 \
+  --lambda_ce   0.5 --lambda_tok 0.9705 \
+  --lambda_phr  0.9009 --lambda_cfg 1.4314 \
+  --M_samples   4 --gradnorm --gradnorm_alpha 0.12 \
+  --gradient_checkpointing --use_chat_template \
+  --early_stop_patience 2 --warmup_ratio 0.1 \
+  --max_new_tok 80 \
+  --curriculum --curriculum_ramp_steps 50
 ```
 
-**Grammar-informed fine-tuning:**
+### Run all conditions (orchestrator)
 
 ```bash
-python train/run_[MODEL]finetune_with_Grammar_ATC.py
+# ATC — all models, key conditions
+python run_train_all_curriculum.py \
+  --scope_dir /path/to/SCOPE \
+  --domain atc \
+  --models gpt2 llama qwen \
+  --conditions C2 C3 C11 C4
+
+# ATC — GPT-2 full ablation (all 13 conditions)
+python run_train_all_curriculum.py \
+  --scope_dir /path/to/SCOPE \
+  --domain atc --models gpt2 \
+  --conditions all \
+  --curriculum_ramp_steps 50
+
+# Maritime
+python run_train_all_curriculum.py \
+  --scope_dir /path/to/SCOPE \
+  --domain smcp --models llama qwen \
+  --conditions C2 C3 C11 C4
 ```
 
-### Evaluation
+---
 
-To run the evaluation suite and generate metrics for a specific model (e.g., GPT):
+## Experimental Conditions
+
+| ID | Name | Objective |
+|---|---|---|
+| C1 | Vanilla | No fine-tuning |
+| C2 | SFT | L_CE only |
+| C3 | DPO | Preference optimisation (β = 0.1) |
+| C5 | SCOPE-tok | L_CE + L_tok |
+| C6 | SCOPE-phr (REINFORCE) | L_CE + L_phr, M = 1 |
+| C7 | SCOPE-phr (GRPO) | L_CE + L_phr, M = 4 |
+| C8 | SCOPE-cfg | L_CE + L_cfg, M = 4 |
+| C9 | SCOPE-2L | L_CE + L_tok + L_phr |
+| C10 | SCOPE-REINFORCE | Full SCOPE, M = 1 |
+| **C11** | **SCOPE-full** | **Full SCOPE + GradNorm, M = 4 ← proposed** |
+| C4a | GCD ∘ Vanilla | GCD at inference on C1 |
+| C4 | GCD ∘ SFT | GCD at inference on C2 |
+| C4b | GCD ∘ SCOPE | GCD at inference on C11 |
+
+**Tuned hyperparameters** (Llama / Qwen3, Optuna 50 trials):
+λ = (0.9705, 0.9009, 1.4314), lr = 2.48 × 10⁻⁵
+
+**GPT-2 Large**: lr = 2 × 10⁻⁴, float32 (bfloat16 incompatible)
+
+---
+
+## Curriculum Learning
+
+Losses are introduced progressively to prevent GRPO reward collapse
+in capacity-limited models:
+
+| Phase | Epochs | Active losses |
+|---|---|---|
+| 1 | 0 – 33% | L_CE only |
+| 2 | 33 – 67% | L_CE + L_tok |
+| 3 | 67 – 100% | Full condition objective |
+
+Enable with `--curriculum --curriculum_ramp_steps 50`.
+Not required for Llama or Qwen3 (GradNorm handles implicit rebalancing).
+
+---
+
+## GCD Baseline
+
+`evaluate_gcd_general.py` applies grammar-constrained decoding at
+inference time to any trained checkpoint:
 
 ```bash
-python utils/utils_evals_GPT.py
+python evaluate_gcd_general.py \
+  --model   results/llama/C2/best \
+  --data    atc_test.json \
+  --grammar G_ATC.lark \
+  --vocab   vocab_ATC.json \
+  --phrase  ngram_whitelist_ATC.json \
+  --domain  atc \
+  --output  results/llama/C4
 ```
 
 ---
 
-## 📈 Results and Benchmarks
+## Citation
 
-The table below summarizes model performance on the ATC Corpus. *Grammar* rows refer to models trained with grammar-informed scripts.
-
-| Model | Variant | BERTScore | Semantic Similarity | ATC Token Compliance | Compute Time (avg, mins) |
-|---|---|---|---|---|---|
-| GPT-2 | Vanilla | 0.772 | 0.179 | 0.292 | — |
-| GPT-2 | Standard fine-tuning | 0.787 | 0.187 | 0.221 | 4.12 |
-| GPT-2 | Grammar-informed fine-tuning | 0.809 | 0.296 | 0.611 | 4.18 |
-| Llama-2 | Vanilla | 0.785 | 0.241 | 0.278 | — |
-| Llama-2 | Standard fine-tuning | 0.788 | 0.148 | 0.298 | 8.25 |
-| Llama-2 | Grammar-informed fine-tuning | 0.814 | 0.319 | 0.662 | 8.29 |
-| Qwen-3 | Vanilla | 0.795 | 0.325 | 0.171 | — |
-| Qwen-3 | Standard fine-tuning | 0.795 | 0.302 | 0.313 | 8.27 |
-| Qwen-3 | Grammar-informed fine-tuning | 0.794 | 0.295 | 0.514 | 8.33 |
-
-### Charts
-
-> 🟣 Vanilla &nbsp;&nbsp; 🟢 Standard fine-tuning &nbsp;&nbsp; 💚 Grammar-informed fine-tuning
-
-**BERTScore**
-
-![BERTScore comparison across models and training variants](docs/bertscore.svg)
-
-**Semantic Similarity**
-
-![Semantic similarity comparison across models and training variants](docs/semantic_similarity.svg)
-
-**ATC Token Compliance**
-
-![ATC token compliance comparison across models and training variants](docs/atc_compliance.svg)
-
-> To regenerate these charts after updating results, run:
-> ```bash
-> python docs/generate_charts.py
-> ```
-
-### Key Findings
-
-- **ATC token compliance is where it matters most** — Grammar-informed fine-tuning nearly doubles or triples compliance scores across all three models. Standard fine-tuning sometimes makes things *worse*: GPT-2 drops from 0.292 to 0.221 with standard fine-tuning alone.
-
-- **Grammar-informed training consistently wins on semantic similarity** — Llama-2 grammar achieves the best score (0.319), with GPT-2 grammar and Qwen-3 grammar both outperforming their vanilla and standard fine-tuned counterparts.
-
-- **Compliance vs. fluency** — Grammar-informed training increases ATC Token Compliance by enforcing standard phraseology patterns, with only a marginal increase in compute time (e.g., GPT-2: 4.12 → 4.18 mins).
-
-- **Latency and edge deployment** — GPT-2 offers the lowest compute time, making it ideal for edge deployment, while Llama-2 and Qwen-3 require roughly 2× the training time but yield higher semantic similarity scores.
+```bibtex
+@inproceedings{scope2025,
+  title     = {{SCOPE}: Hierarchical Grammar-Informed Optimization
+               for Domain-Specific Language Models},
+  author    = {Anonymous},
+  booktitle = {Proceedings of EMNLP 2026},
+  year      = {2026}
+}
+```
 
 ---
 
-## 📂 File Structure
+## License
 
-| File / Directory | Description |
-|---|---|
-| `docs/generate_charts.py` | Regenerates SVG result charts into `assets/` |
-| `train/run_[MODEL]finetune_ATC.py` | Scripts for standard supervised fine-tuning |
-| `train/run_[MODEL]finetune_with_Grammar_ATC.py` | Scripts incorporating aviation grammar constraints |
-| `utils/utils_evals_[MODEL].py` | Evaluation scripts for calculating metrics |
-| `docs/` | Generated SVG charts referenced by this README |
-| `data/` | Directory for the ATC Corpus dataset |
-
----
-
-## 🛠 Tech Stack
-
-| Category | Tools |
-|---|---|
-| Frameworks | PyTorch, Hugging Face Transformers |
-| Models | GPT-2, Llama-2, Qwen-3 |
-| Dataset | ATC Corpus |
-| Visualization | Matplotlib (via `generate_charts.py`) |
-
----
-
-## 📄 License
-
-Distributed under the MIT License. See [`LICENSE`](LICENSE) for more information.
+MIT License. The LDC ATC corpus (LDC94S14A) is used for research purposes
+under the LDC User Agreement. The synthetic SMCP dataset is released under
+MIT for research use only.
