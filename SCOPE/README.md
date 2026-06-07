@@ -9,7 +9,7 @@ without any inference-time constraint.
 > Paper: *SCOPE: Hierarchical Grammar-Informed Optimization for Domain-Specific
 > Language Models* — EMNLP 2026 (under review)
 >
-> Code: [anonymous.4open.science/r/ATC_Chatbot](#) *(anonymised for review)*
+> Code: [anonymous.4open.science/r/ATC_Chatbot-6F51/](#) *(anonymised for review)*
 
 ---
 
