@@ -200,7 +200,7 @@ python evaluate_gcd_general.py \
 ## Citation
 
 ```bibtex
-@inproceedings{scope2025,
+@inproceedings{scope2026,
   title     = {{SCOPE}: Hierarchical Grammar-Informed Optimization
                for Domain-Specific Language Models},
   author    = {Anonymous},
