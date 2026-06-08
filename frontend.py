@@ -1,57 +1,27 @@
-from logging import raiseExceptions
-import gradio as gr
-from transformers import pipeline, AutoTokenizer, AutoProcessor, WhisperForConditionalGeneration
+import os
 import torch
-import sys
-import os
-import json # Import json to read config.json
-from huggingface_hub import login, hf_hub_download # Import login for Hugging Face authentication
-from gtts import gTTS # Import gTTS for text-to-speech
-from IPython.display import Audio # Import Audio for playing sound in Colab
-import soundfile as sf # Import soundfile for loading audio
-import sentencepiece as spm # Needed for LlamaTokenizer
+import whisper
+import threading
+import gradio as gr
+from huggingface_hub import login, hf_hub_download 
+from peft import PeftModel
+from transformers import pipeline
+from styletts2 import tts
+import nltk
+import re
+import scipy.io.wavfile as wavfile
+import numpy as np
+nltk.download('punkt_tab')
 
-# Add the path to your ATC_Chatbot directory so utils modules can be imported
-sys.path.append('./')
-sys.path.append('./train')
-sys.path.append('./utils')
-sys.path.append('./data')
-sys.path.append('./docs')
-sys.path.append('./evals')
-
-# Import necessary custom classes and functions
-from utils_models import GPTModel  # Assuming GPTModel is in utils_models.py
-from utils_methods import generate, text_to_token_ids, token_ids_to_text
-from utils_downloads import download_and_load_gpt2, load_weights_into_gpt
-import tiktoken
-
-# Llama specific imports
-from utils_models_llama2 import Llama2Model
-from run_LLAMAfinetune_with_Grammar_ATC import assign, permute, load_weights_into_llama as load_llama_weights
-
-from openai import OpenAI
-import os
-
-# Get the secret value from config.json
-config_path = "./config.json"
-try:
-    with open(config_path, "r") as config_file:
-        config = json.load(config_file)
-        api_key = config.get('OPENAI_API_KEY')
-        if api_key:
-            # Set it as an environment variable in the current session
-            os.environ['OPENAI_API_KEY'] = api_key
-            print("Successfully set openai key in os.environ.")
-        else:
-            print("OPENAI_API_KEY not found in config.json. Proceeding without authentication.")
-except FileNotFoundError:
-    print(f"config.json not found at {config_path}. Proceeding without OpenAI authentication.")
-    raise FileNotFoundError(f"config.json not found at {config_path}")
-except Exception as e:
-    print(f"Error during OpenAI key loading: {e}. Proceeding without authentication.")
+import json
+from datasets import Dataset
+from transformers import AutoTokenizer, AutoModelForCausalLM, TrainingArguments
+from transformers import DataCollatorForSeq2Seq
+from peft import LoraConfig, get_peft_model, TaskType
+from trl import SFTTrainer, SFTConfig
 
 
-# --- START: Added for Hugging Face Authentication ---
+# 1. Configuration & Global State Management
 # Load Hugging Face token from config.json
 config_path = "./config.json"
 try:
@@ -67,343 +37,391 @@ except FileNotFoundError:
     print(f"config.json not found at {config_path}. Proceeding without Hugging Face authentication.")
 except Exception as e:
     print(f"Error during Hugging Face login: {e}. Proceeding without authentication.")
-# --- END: Added for Hugging Face Authentication ---
 
+HF_TOKEN = hf_token
+#CALLSIGN = "Windracers One-Two-Tree"
+CALLSIGN = ""
 
-# 1. Load fine-tuned model (Replace with local checkpoint path)
-#model_weights_path = "./gpt2-large774M-atc-with-grammar-loss.pth"
-model_weights_path = "./gpt2-large774M-atc-clm-loss.pth"
-# Download a model from huggingface
-model_weights_path = hf_hub_download(
-    repo_id="Sabine-Brunswicker/GPT-2-Large-Finetuned-on-ATC", 
-    filename="gpt2-large774M-atc-clm-loss.pth",
-    #use_auth_token=True
-)
-print(f"File downloaded to: {model_weights_path}")
+class TelemetryData:
+    def __init__(self):
+        self.lock = threading.Lock()
+        self.altitude = 4500
+        self.heading = 270
+        self.latitude = 40.4259
+        self.longitude = -86.9081
+        self.next_waypoint = "Boiler"
+        self.airspeed = 120
 
+    def update(self, alt, hdg, lat, lon, waypoint, speed):
+        with self.lock:
+            self.altitude = int(alt)
+            self.heading = int(hdg)
+            self.latitude = float(lat)
+            self.longitude = float(lon)
+            self.next_waypoint = str(waypoint).capitalize()
+            self.airspeed = int(speed)
 
+    def get_current_packet_string(self):
+        with self.lock:
+            return (f"[CURRENT AIRCRAFT TELEMETRY]:\n"
+                    f"Altitude: {self.altitude} feet\n"
+                    f"Heading: {self.heading} degrees\n"
+                    f"Latitude: {self.latitude}\n"
+                    f"Longitude: {self.longitude}\n"
+                    f"Next Waypoint: {self.next_waypoint}\n"
+                    f"Airspeed: {self.airspeed} knots")
 
-# Define the GPT-2 large configuration (must match how the model was trained)
-BASE_CONFIG = {
-    "vocab_size": 50257,     # Vocabulary size
-    "context_length": 1024,  # Context length
-    "drop_rate": 0.0,        # Dropout rate
-    "qkv_bias": True         # Query-key-value bias
-}
+telemetry = TelemetryData()
 
-MODEL_CHOICE = "gpt2-large (774M)"
-MODEL_CONFIGS = {
-    "gpt2-small (124M)": {"emb_dim": 768, "n_layers": 12, "n_heads": 12},
-    "gpt2-medium (355M)": {"emb_dim": 1024, "n_layers": 24, "n_heads": 16},
-    "gpt2-large (774M)": {"emb_dim": 1280, "n_layers": 36, "n_heads": 20},
-    "gpt2-xl (1558M)": {"emb_dim": 1600, "n_layers": 48, "n_heads": 25},
-}
-BASE_CONFIG.update(MODEL_CONFIGS[MODEL_CHOICE])
+# Standard ICAO Word Translator
+def to_icao_spelling(value):
+    digit_map = {
+        '0': 'Zero', '1': 'One', '2': 'Two', '3': 'Tree', '4': 'Four',
+        '5': 'Fife', '6': 'Six', '7': 'Seven', '8': 'Eight', '9': 'Niner',
+        '.': 'Decimal', '-': 'Minus'
+    }
+    cleaned_string = str(value).upper()
+    spelled_out = []
+    for char in cleaned_string:
+        if char in digit_map:
+            spelled_out.append(digit_map[char])
+        elif char.isalnum():
+            spelled_out.append(char)
+    return "-".join(spelled_out)
 
-# Llama2 config (must match training)
-LLAMA2_CONFIG_7B = {
-    "vocab_size": 32000,     # Vocabulary size
-    "context_length": 4096,  # Context length
-    "emb_dim": 4096,         # Embedding dimension
-    "n_heads": 32,           # Number of attention heads
-    "n_layers": 32,          # Number of layers
-    "hidden_dim": 11008,     # Size of the intermediate dimension in FeedForward
-    "dtype": torch.bfloat16  # Lower-precision dtype to reduce memory usage
-}
+# Formats raw telemetry cleanly
+def generate_icao_telemetry_report():
+    with telemetry.lock:
+        alt_str = to_icao_spelling(telemetry.altitude)
+        hdg_str = to_icao_spelling(telemetry.heading)
+        lat_str = to_icao_spelling(telemetry.latitude).replace("-", " ")
+        lon_str = to_icao_spelling(telemetry.longitude).replace("-", " ")
+        spd_str = to_icao_spelling(telemetry.airspeed)
+        way_str = telemetry.next_waypoint
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    # Only append callsign if it's set
+    callsign_suffix = f" {to_icao_spelling(CALLSIGN)}." if CALLSIGN.strip() else ""
 
-# Instantiate the custom GPTModel (default LM)
-atc_model = GPTModel(BASE_CONFIG)
+    return (
+        f"Altitude {alt_str}. "
+        f"Heading {hdg_str}. "
+        f"Latitude {lat_str}. "
+        f"Longitude {lon_str}. "
+        f"Next Waypoint {way_str}. "
+        f"Airspeed {spd_str}."
+        f"{callsign_suffix}"
+    )
+    #return f"Altitude {alt_str}. Heading {hdg_str}. Latitude {lat_str}. Longitude {lon_str}. Next Waypoint {way_str}. Airspeed {spd_str}. {to_icao_spelling(CALLSIGN)}."
 
-# Load the saved state dictionary
-atc_model.load_state_dict(torch.load(model_weights_path, map_location=device))
-atc_model.eval() # Set model to evaluation mode
+def clean_and_hyphenate_callsigns(text):
+    digit_map = {'0':'Zero', '1':'One', '2':'Two', '3':'Tree', '4':'Four', '5':'Fife', '6':'Six', '7':'Seven', '8':'Eight', '9':'Niner'}
+    def replacer(match):
+        #name = match.group(1).upper()
+        name = match.group(1).capitalize()
+        digits = match.group(2)
+        return f"{name}-" + "-".join([digit_map[d] for d in digits])
+    pattern = r"\b([a-zA-Z]+(?:\s+[a-zA-Z]+)*)\s+(\d+)\b"
+    return re.compile(pattern, re.IGNORECASE).sub(replacer, text)
 
-# Move model to device
-atc_model.to(device)
+#PILOT_SYSTEM_PROMPT = f"""You are the pilot flying an aircraft with callsign "{CALLSIGN}".
+PILOT_SYSTEM_PROMPT = f"""You are the pilot flying an aircraft with given callsign.
+You are listening to an Air Traffic Controller (ATC) transmission.
+You are equipped with a live telemetry feed showing your current aircraft instruments.
 
-# Load the tokenizer (default LM tokenizer)
-tokenizer = tiktoken.get_encoding("gpt2")
+CRITICAL DISCIPLINE RULES:
+1. NEVER hallucinate maneuvers. If ATC says "taxi into position and hold", do NOT say you are climbing or changing heading.
+2. If ATC asks for a position or instrument report, read back the information ONLY from the provided [CURRENT AIRCRAFT TELEMETRY] packet.
+3. Formulate all numerical values (digits) into distinct single words following ICAO radiotelephony rules:
+   - 492 is "Four-Nine-Two". 9 is "Niner". 3 is "Tree". 5 is "Fife".
+   - "Say "decimal" instead of "point" for decimal points e.g. 32.31 is "Tree-Two-Decimal-Three-One".
+   - Say "minus" instead of "negative" for negative numbers e.g. -123 is "Minus-One-Two-Three".
+   - For altitude, Say "Tousand" and "Hundred" instead of digits e.g. 12300 is "Twelve-Tousand-Three-Hundred".
+   - for heading, Say each digits e.g. 270 is "Two-Seven-Zero".
+4. Always end your transmission with the given official callsign.
+5. Be highly concise. Do not use polite conversational filler.
+"""
 
-# LlamaTokenizer class definition for dynamic loading
-class LlamaTokenizer:
-    def __init__(self, tokenizer_file):
-        sp = spm.SentencePieceProcessor()
-        sp.load(tokenizer_file)
-        self.tokenizer = sp
+chat_history = [{"role": "system", "content": PILOT_SYSTEM_PROMPT}]
 
-    def encode(self, text):
-        return self.tokenizer.encode(text, out_type=int)
+# Dynamic Model Trackers
+loaded_whisper_size = None
+whisper_model = None
 
-    def decode(self, ids):
-        return self.tokenizer.decode(ids)
+loaded_llm_repo = None
+llama_pipe = None
 
+def get_whisper_model(size_name):
+    global loaded_whisper_size, whisper_model
+    if whisper_model is None or loaded_whisper_size != size_name:
+        print(f"⏳ Dynamic Swapping: Loading Whisper Model Variant [{size_name}]...")
+        whisper_model = whisper.load_model(size_name)
+        loaded_whisper_size = size_name
+    return whisper_model
 
-# 2. Load ASR Model (using Whisper for high-fidelity audio input)
-# Explicitly load processor and model for Whisper
-whisper_model_name = "openai/whisper-tiny"
-processor = AutoProcessor.from_pretrained(whisper_model_name)
-whisper_model = WhisperForConditionalGeneration.from_pretrained(whisper_model_name).to(device)
+'''def get_llm_pipeline(model_choice, custom_repo):
+    global loaded_llm_repo, llama_pipe
+    target_repo = "meta-llama/Llama-3.1-8B-Instruct" if model_choice == "Grammar-Prompted Model" else custom_repo
 
-def asr_pipe_custom(audio_path):
-    # Load audio data from the provided path
-    if not isinstance(audio_path, str) or not os.path.exists(audio_path):
-        raise ValueError(f"Invalid audio_path: {audio_path}")
+    if not target_repo or target_repo.strip() == "":
+        raise ValueError("Custom Fine-tuned repository path cannot be empty.")
 
-    # Read audio file
-    audio_input, sampling_rate = sf.read(audio_path)
-
-    # Convert to mono if stereo
-    if audio_input.ndim > 1:
-        audio_input = audio_input.mean(axis=1) # Average channels to get mono
-
-    # Resample if necessary (Whisper expects 16kHz)
-    if sampling_rate != 16000:
-        # Simple resampling for demonstration. For production, consider `torchaudio.transforms.Resample`
-        # or `librosa.resample` for higher quality.
-        from scipy.signal import resample_poly
-        audio_input = resample_poly(audio_input, 16000, sampling_rate)
-        sampling_rate = 16000
-
-    # Process audio with Whisper processor
-    inputs = processor(audio_input, sampling_rate=sampling_rate, return_tensors="pt").input_features.to(device)
-
-    # Generate output
-    predicted_ids = whisper_model.generate(inputs, max_new_tokens=128)
-    transcription = processor.batch_decode(predicted_ids, skip_special_tokens=True)[0]
-    return {"text": transcription}
-
-def custom_generate_text(model, text_prompt, tokenizer, max_new_tokens=50, context_length=1024, eos_id=50256, device='cpu'):
-    model.eval()
-    input_ids = text_to_token_ids(text_prompt, tokenizer).to(device)
-    with torch.no_grad():
-        output_ids = generate(
-            model=model,
-            idx=input_ids,
-            max_new_tokens=max_new_tokens,
-            context_size=context_length,
-            eos_id=eos_id
+    if llama_pipe is None or loaded_llm_repo != target_repo:
+        print(f"⏳ Dynamic Swapping: Initializing LLM Pipeline [{target_repo}]...")
+        llama_pipe = pipeline(
+            "text-generation",
+            model=target_repo,
+            dtype=torch.bfloat16,
+            #device_map="auto",
+            token=HF_TOKEN
         )
-    full_text = token_ids_to_text(output_ids, tokenizer)
-    return full_text[len(text_prompt):].strip()
+        loaded_llm_repo = target_repo
+    return llama_pipe'''
 
-def process_voice_request(audio, asr_model_choice, lm_model_choice):
-    print("--- Starting process_voice_request ---")
-    if audio is None:
-        print("Error: No audio input received.")
-        return "Error: No audio input received.", "Error: No audio input received."
 
-    # --- ASR Processing ---
-    # Re-initialize ASR model based on selection (or switch if already loaded)
-    global whisper_model, processor, whisper_model_name, model_weights_path
+def get_llm_pipeline(model_choice, custom_repo):
+    global loaded_llm_repo, llama_pipe
 
-    current_whisper_model_name = whisper_model_name # Use a local variable for initial check
-
-    if asr_model_choice == "Whisper Tiny":
-        new_whisper_model_name = "openai/whisper-tiny"
-    elif asr_model_choice == "Whisper Medium":
-        new_whisper_model_name = "openai/whisper-medium"
-    elif asr_model_choice == "Whisper Large-v3":
-        new_whisper_model_name = "openai/whisper-large-v3"
+    if model_choice == "Finetuned Model SCOPE 1.0":
+        target_repo = "Sabine-Brunswicker/ATC-LLAMA-LORA"
+        is_lora = True
     else:
-        new_whisper_model_name = "openai/whisper-tiny" # Default
+        target_repo = "meta-llama/Llama-3.1-8B-Instruct"
+        is_lora = False
 
-    if current_whisper_model_name != new_whisper_model_name:
-        print(f"Switching ASR model to {new_whisper_model_name}")
-        whisper_model_name = new_whisper_model_name
-        del whisper_model
-        del processor
-        torch.cuda.empty_cache()
-        processor = AutoProcessor.from_pretrained(whisper_model_name)
-        whisper_model = WhisperForConditionalGeneration.from_pretrained(whisper_model_name).to(device)
-
-    transcription_result = asr_pipe_custom(audio)
-    transcription = transcription_result["text"]
-    print(f"Transcription completed: {transcription}")
-
-    # --- LM Processing ---
-    # Dynamically load or select the LM model and tokenizer
-    global atc_model, tokenizer, BASE_CONFIG # Assuming BASE_CONFIG also needs to be dynamic for LM
-    current_lm_model = atc_model
-    current_tokenizer = tokenizer
-    current_base_config = BASE_CONFIG
-
-    #if lm_model_choice == "GPT-2 Large Grammar":
-    if lm_model_choice == "GPT-2 Large Causal":
-        # Load GPT-2 Large Grammar (already loaded by default, but ensure if switched away and back)
-        if not isinstance(current_lm_model, GPTModel) or BASE_CONFIG["emb_dim"] != 1280 or model_weights_path != "/content/drive/MyDrive/ATC_Chatbot/gpt2-large774M-atc-with-grammar-loss.pth":
-            print("Switching LM to GPT-2 Large Grammar")
-            #model_weights_path = "./gpt2-large774M-atc-with-grammar-loss.pth"
-            #model_weights_path = "./gpt2-large774M-atc-clm-loss.pth"
-            model_weights_path = hf_hub_download(
-                repo_id="Sabine-Brunswicker/GPT-2-Large-Finetuned-on-ATC", 
-                filename="gpt2-large774M-atc-clm-loss.pth",
-                #use_auth_token=True
-            )
-            current_base_config = MODEL_CONFIGS["gpt2-large (774M)"]
-            current_base_config.update(BASE_CONFIG) # Ensure all common keys are present
-            del current_lm_model
-            torch.cuda.empty_cache()
-            current_lm_model = GPTModel(current_base_config)
-            current_lm_model.load_state_dict(torch.load(model_weights_path, map_location=device))
-            current_lm_model.eval().to(device)
-            current_tokenizer = tiktoken.get_encoding("gpt2")
-
-    elif lm_model_choice == "GPT-2 Medium":
-        if not isinstance(current_lm_model, GPTModel) or BASE_CONFIG["emb_dim"] != 1024:
-            print("Switching LM to GPT-2 Medium (Off-the-shelf)")
-            # Example of loading an off-the-shelf GPT-2 Medium
-            current_base_config = {
-                "vocab_size": 50257, "context_length": 1024, "drop_rate": 0.0, "qkv_bias": True,
-                "emb_dim": 1024, "n_layers": 24, "n_heads": 16 # GPT-2 Medium config
-            }
-            del current_lm_model
-            torch.cuda.empty_cache()
-            current_lm_model = GPTModel(current_base_config)
-            _, params = download_and_load_gpt2(model_size="355M", models_dir="gpt2")
-            load_weights_into_gpt(current_lm_model, params)
-            current_lm_model.eval().to(device)
-            current_tokenizer = tiktoken.get_encoding("gpt2")
-
-    elif lm_model_choice == "Llama-2-7b":
-        if not isinstance(current_lm_model, Llama2Model) or LLAMA2_CONFIG_7B["emb_dim"] != 4096:
-            print("Switching LM to Llama-2-7b (Off-the-shelf)")
-            current_base_config = LLAMA2_CONFIG_7B
-            del current_lm_model
-            torch.cuda.empty_cache()
-            current_lm_model = Llama2Model(current_base_config)
-
-            llama_weights_file = hf_hub_download(
-                repo_id="meta-llama/Llama-2-7b-chat",
-                filename="consolidated.00.pth",
-                local_dir="Llama-2-7b-chat"
-            )
-            llama_weights = torch.load(llama_weights_file, map_location="cpu", weights_only=True)
-            load_llama_weights(current_lm_model, current_base_config, llama_weights)
-            del llama_weights
-            import gc
-            gc.collect()
-
-            current_lm_model.eval().to(device)
-
-            llama_tokenizer_file = hf_hub_download(
-                repo_id="meta-llama/Llama-2-7b",
-                filename="tokenizer.model",
-                local_dir="Llama-2-7b"
-            )
-            current_tokenizer = LlamaTokenizer(llama_tokenizer_file)
-    elif lm_model_choice == "GPT-5.4":
-        if not isinstance(current_lm_model, GPTModel) or BASE_CONFIG["emb_dim"] != 1024:
-            print("Switching LM to GPT-5.4 (Off-the-shelf)")
-            # Example of loading an off-the-shelf GPT-5.4
-            del current_lm_model
-            torch.cuda.empty_cache()
-            # The client automatically looks for an "OPENAI_API_KEY" environment variable
-            current_lm_model = None
-            current_tokenizer = None
-            current_base_config = None
-
-
-    # Generate suggested UAV response using your model
-    n_instruction = (
-        "Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n"+
-        "### Instruction:\nBelow is a dialogue (communication exchange) between Air Traffic Control (ATC) and UAV Pilot in a controlled airspace. " +
-        "Only one part of the conversation is provided i.e. either for the ATC or for the UAV Pilot. " +
-        "Write a response that appropriately completes the other side of the conversation.\n"+
-        "### ATC: "
-    )
-
-    prompt = n_instruction + transcription.upper() + "\n### UAV Pilot:"
-    print(f"Prompt prepared: {prompt}")
-
-    # Determine eos_id based on tokenizer type
-    if isinstance(current_tokenizer, tiktoken.Encoding):
-        eos_id = current_tokenizer.encode("<|endoftext|>", allowed_special={'<|endoftext|>'})[0]
-        context_length_lm = current_base_config["context_length"]
-    elif isinstance(current_tokenizer, LlamaTokenizer):
-        eos_id = current_tokenizer.tokenizer.eos_id # LlamaTokenizer stores it differently
-        context_length_lm = current_base_config["context_length"]
-    elif lm_model_choice == "GPT-5.4":
-        client = OpenAI()
-        generated_response = client.responses.create(
-            model="gpt-5.4",
-            input=prompt,
-            reasoning={
-                "effort": "medium"  # Options: none, low, medium, high, xhigh
-            }
+    if llama_pipe is None or loaded_llm_repo != target_repo:
+        print(f"⏳ Loading [{target_repo}]...")
+        tokenizer = AutoTokenizer.from_pretrained(
+            "meta-llama/Llama-3.1-8B-Instruct", token=HF_TOKEN
         )
-        print(f"Model: {generated_response.model}")
-        print(f"Generated response from model: {generated_response.output_text}")
-        return transcription, generated_response.output_text
-    else:
-        raise ValueError("Unsupported tokenizer type.")
-
-    # Use the custom generation function
-    generated_response = custom_generate_text(
-        current_lm_model,
-        prompt,
-        current_tokenizer,
-        max_new_tokens=50,
-        context_length=context_length_lm,
-        eos_id=eos_id,
-        device=device
-    )
-    print(f"Generated response from model: {generated_response}")
-
-    # Extract only the response part
-    suggested_response = generated_response.split("### UAV Pilot:")[-1].strip()
-    print(f"Suggested UAV response extracted: {suggested_response}")
-    print("--- Finished process_voice_request ---")
-
-    return transcription, suggested_response
-
-def transmit_and_speak(text_to_speak):
-    print(f"Transmitting: {text_to_speak}")
-    if text_to_speak:
-        tts = gTTS(text_to_speak)
-        tts.save('generated_response.wav')
-        return 'generated_response.wav' # Return the path to the audio file
-    return None
-
-# 3. Build UI
-with gr.Blocks(title="Windracers ATC Operator Assistant") as demo:
-    gr.Markdown("# \u2708\ufe0f Windracers UAV ATC Communication Assistant")
-    gr.Markdown("Speak the incoming ATC request. Review the AI-generated compliant response before transmitting.")
-
-    with gr.Row():
-        audio_input = gr.Audio(sources=["microphone", "upload"], type="filepath", label="Record ATC Request") # Added "upload" source
-
-    with gr.Row():
-        asr_model_selector = gr.Dropdown(
-            ["Whisper Tiny", "Whisper Medium", "Whisper Large-v3"],
-            label="Select ASR Model",
-            value="Whisper Medium"
+        base_model = AutoModelForCausalLM.from_pretrained(
+            "meta-llama/Llama-3.1-8B-Instruct",
+            torch_dtype=torch.bfloat16,
+            device_map="auto",
+            token=HF_TOKEN
         )
-        lm_model_selector = gr.Dropdown(
-            ["GPT-2 Large Causal", "GPT-2 Medium", "Llama-2-7b", "GPT-5.4"],
-            label="Select Language Model",
-            value="GPT-5.4"
+        if is_lora:
+            base_model = PeftModel.from_pretrained(base_model, target_repo, token=HF_TOKEN)
+            base_model = base_model.merge_and_unload()  # fuses adapter for faster inference
+
+        llama_pipe = pipeline(
+            "text-generation",
+            model=base_model,
+            tokenizer=tokenizer,
+        )
+        loaded_llm_repo = target_repo
+
+    return llama_pipe
+
+print("⏳ Initializing Default StyleTTS2 Vocal Engine...")
+original_torch_load = torch.load
+def custom_torch_load(*args, **kwargs):
+    kwargs['weights_only'] = False
+    return original_torch_load(*args, **kwargs)
+torch.load = custom_torch_load
+try:
+    styletts_engine = tts.StyleTTS2()
+finally:
+    torch.load = original_torch_load
+
+
+# 2. Pipeline Control Processing Matrix
+def sync_telemetry_inputs(alt, hdg, lat, lon, waypoint, speed):
+    telemetry.update(alt, hdg, lat, lon, waypoint, speed)
+    return telemetry.get_current_packet_string()
+
+def generate_draft_response(audio_mic, audio_upload, asr_size, llm_choice, custom_llm_repo):
+    global chat_history
+
+    # Select whichever audio slot contains data (Prioritize uploaded files)
+    active_audio_path = audio_upload if audio_upload is not None else audio_mic
+    if active_audio_path is None:
+        return "⚠️ Error: No audio recording or file upload detected.", ""
+
+    try:
+        # Dynamic hardware validation & model activation
+        active_whisper = get_whisper_model(asr_size)
+        active_llm = get_llm_pipeline(llm_choice, custom_llm_repo)
+
+        result = active_whisper.transcribe(
+            active_audio_path,
+            fp16=torch.cuda.is_available(),
+            temperature=0.0,
+            initial_prompt="Tower, Windracers, Runway, Taxi, Position, Hold, Line up, Cleared, Altimeter, Report Position"
+        )
+        atc_text = result["text"].strip()
+
+        if not atc_text:
+            return "❌ Speech Recognition failed to extract text.", ""
+
+        '''if re.search(r"\b(report position|say position|report altitude|say status)\b", atc_text.lower()):
+            pilot_response = generate_icao_telemetry_report()
+            return atc_text, pilot_response'''
+
+        current_telemetry = telemetry.get_current_packet_string()
+        combined_payload = f"{current_telemetry}\n\nATC Transmission: {atc_text}"
+
+        active_turn = chat_history + [{"role": "user", "content": combined_payload}]
+        formatted_prompt = active_llm.tokenizer.apply_chat_template(active_turn, tokenize=False, add_generation_prompt=True)
+
+        outputs = active_llm(
+            formatted_prompt,
+            max_new_tokens=100,
+            temperature=0.1,
+            do_sample=True,
+            return_full_text=False
         )
 
-    with gr.Column():
-        transcribed_text = gr.Textbox(label="Transcribed ATC Request", interactive=False)
-        suggested_output = gr.Textbox(label="Suggested UAV Response (Edit if necessary)", interactive=True)
-        audio_output = gr.Audio(label="Generated Voice Response", interactive=False) # Add an audio output component
+        pilot_response = outputs[0]["generated_text"].strip()
+        pilot_response = clean_and_hyphenate_callsigns(pilot_response)
+        return atc_text, pilot_response
+
+    except Exception as e:
+        import traceback
+        return f"Draft Matrix Error: {str(e)}", traceback.format_exc()
+
+def approve_and_transmit_speech(atc_text, pilot_response):
+    global chat_history
+    if not pilot_response or "Error" in pilot_response or "failed" in pilot_response:
+        return None, "⚠️ Cannot transmit an empty or faulty response draft."
+
+    print(f"DEBUG pilot_response: {repr(pilot_response)}")  
+    print(f"DEBUG sentences: {nltk.sent_tokenize(pilot_response)}")  
+
+    try:
+        chat_history.append({"role": "user", "content": atc_text})
+        chat_history.append({"role": "assistant", "content": pilot_response})
+
+        final_text = clean_and_hyphenate_callsigns(pilot_response).capitalize()
+        #final_text = pilot_response
+        sentences = nltk.sent_tokenize(final_text)
+        combined_audio_chunks = []
+        sample_rate = 24000
+        temp_chunk_path = "temp_sentence_chunk.wav"
+
+        for sentence in sentences:
+            if not sentence.strip():
+                continue
+            styletts_engine.inference(text=sentence.strip(), output_wav_file=temp_chunk_path)
+            sr, audio_data = wavfile.read(temp_chunk_path)
+            sample_rate = sr
+            combined_audio_chunks.append(audio_data)
+            radio_pause = np.zeros(int(sample_rate * 0.2), dtype=audio_data.dtype)
+            combined_audio_chunks.append(radio_pause)
+
+        if os.path.exists(temp_chunk_path):
+            os.remove(temp_chunk_path)
+
+        final_audio_signal = np.concatenate(combined_audio_chunks)
+
+        # Audio datatype aligned mix loop
+        noise_level = 0.02
+        white_noise = np.random.normal(0, noise_level, size=final_audio_signal.shape).astype(final_audio_signal.dtype)
+
+        if final_audio_signal.dtype == np.float32:
+            final_audio_signal = final_audio_signal + white_noise
+            final_audio_signal = np.clip(final_audio_signal, -1.0, 1.0)
+        else:
+            max_val = np.iinfo(final_audio_signal.dtype).max
+            noise_ints = (white_noise * max_val).astype(final_audio_signal.dtype)
+            final_audio_signal = np.clip(final_audio_signal.astype(np.int32) + noise_ints.astype(np.int32), -max_val, max_val).astype(final_audio_signal.dtype)
+
+        output_audio_path = "pilot_transmission.wav"
+        wavfile.write(output_audio_path, sample_rate, final_audio_signal)
+
+        status_update = "✅ Radio Broadcast Transmission Complete with Static Filters Applied."
+        return output_audio_path, status_update
+
+    except Exception as e:
+        return None, f"StyleTTS2 Error: {str(e)}"
+
+# 3. Gradio Core Layout Construction
+with gr.Blocks(theme=gr.themes.Soft()) as demo:
+#with gr.Blocks() as demo:
+    gr.Markdown("# ✈️ Windracers UAV-ATC Communication Assistant")
+    gr.Markdown("Stream, Record or Upload incoming ATC request. Review the AI-generated compliant response before transmitting.")
 
     with gr.Row():
-        btn_process = gr.Button("Generate Suggestion", variant="primary")
-        btn_transmit = gr.Button("Approve & Transmit", variant="success")
 
-    # Link functions
-    btn_process.click(
-        process_voice_request,
-        inputs=[audio_input, asr_model_selector, lm_model_selector],
-        outputs=[transcribed_text, suggested_output]
+        # ── Left Column: Configuration & Telemetry ──────────────────────────
+        with gr.Column(scale=1):
+            gr.Markdown("### 🖨️ Active Output Telemetry Data")
+            telemetry_display = gr.Code(
+                value=telemetry.get_current_packet_string(),
+                language="markdown",
+                interactive=False,
+            )
+
+            gr.Markdown("### 📡 Live Avionics Overrides")
+            slider_alt = gr.Slider(minimum=0,   maximum=15000, step=100, value=4500,  label="Altitude (ft)")
+            slider_hdg = gr.Slider(minimum=0,   maximum=360,   step=1,   value=270,   label="Heading (deg)")
+            input_lat  = gr.Textbox(value="40.4259",  label="Latitude")
+            input_lon  = gr.Textbox(value="-86.9081", label="Longitude")
+            input_way  = gr.Textbox(value="Boiler",   label="Next Waypoint")
+            slider_spd = gr.Slider(minimum=0,   maximum=300,   step=5,   value=120,   label="Airspeed (kts)")
+
+            # Wire every telemetry slider/textbox to live-sync the display
+            telemetry_inputs = [slider_alt, slider_hdg, input_lat, input_lon, input_way, slider_spd]
+            for widget in telemetry_inputs:
+                widget.change(
+                    fn=sync_telemetry_inputs,
+                    inputs=telemetry_inputs,
+                    outputs=[telemetry_display],
+                )
+
+        # ── Right Column: Audio I/O & Pipeline ──────────────────────────────
+        with gr.Column(scale=2):
+            gr.Markdown("### 📻 Input Audio Signal Acquisition")
+            audio_input = gr.Audio(
+                sources=["microphone", "upload"],
+                type="filepath",
+                label="Record / Upload ATC Signal",
+            )
+
+            with gr.Row():
+                dropdown_asr = gr.Dropdown(
+                    choices=["small", "medium", "large"],
+                    value="medium",
+                    label="Select ASR Model size",
+                )
+                dropdown_llm = gr.Dropdown(
+                    choices=["Finetuned Model SCOPE 1.0", "Grammar-Prompted Model"],
+                    value="Finetuned Model SCOPE 1.0",
+                    label="Select Language Model",
+                )
+
+            #input_llm_repo = gr.State("meta-llama/Llama-3.1-8B-Instruct")
+            input_llm_repo = gr.State("Sabine-Brunswicker/ATC-LLAMA-LORA")
+            #input_llm_repo = gr.Textbox(
+             #   value="meta-llama/Llama-3.1-8B-Instruct",
+              #  label="SCOPE Huggingface Repo (Used for Fine-Tuned choice)",
+            #)
+
+            generate_btn = gr.Button("⚙️ Generate Response", variant="primary")
+
+            with gr.Group():
+                stt_output = gr.Textbox(label="📻 Transcribed ATC Request",      interactive=False)
+                llm_output = gr.Textbox(label="✍️ Suggested UAV Response (Edit if necessary)", interactive=True)
+
+            approve_btn = gr.Button("🛫 Authorize & Transmit Radio Signal", variant="primary")
+
+            with gr.Group():
+                transmission_status = gr.Textbox(
+                    label="📡 Transmission Status Logs",
+                    value="Awaiting Draft...",
+                    interactive=False,
+                )
+                audio_output = gr.Audio(label="🔊 Outbound Broadcast Monitor", interactive=False)
+
+    # ── Event Bindings ───────────────────────────────────────────────────────
+    generate_btn.click(
+        fn=generate_draft_response,
+        inputs=[audio_input, audio_input, dropdown_asr, dropdown_llm, input_llm_repo],
+        outputs=[stt_output, llm_output],
+    )
+    approve_btn.click(
+        fn=approve_and_transmit_speech,
+        inputs=[stt_output, llm_output],
+        outputs=[audio_output, transmission_status],
     )
 
-    # Update the transmit button to also generate and play speech
-    btn_transmit.click(transmit_and_speak, inputs=suggested_output, outputs=audio_output)
-
-#demo.launch(debug=True)
-demo.launch(server_name="0.0.0.0", server_port=7860, share=True)
+demo.launch(share=True, debug=True)

@@ -1,29 +1,65 @@
 # ATC Chatbot for UAV Operators
 
-An AI-driven communication support system designed to assist **Unmanned Aerial Vehicle (UAV)** operators in navigating controlled airspace. This project fine-tunes causal language models to generate and validate Air Traffic Control (ATC) communications, ensuring compliance with strict aviation protocols.
+An AI-driven communication support system that assists **Unmanned Aerial
+Vehicle (UAV)** operators in navigating controlled airspace. The system
+fine-tunes causal language models to generate ATC-compliant responses,
+enforcing strict adherence to aviation phraseology defined in ICAO Doc 4444
+and FAA JO 7110.65.
 
 ---
 
-## 📌 Project Overview
+## 📊 Results on ATC Test Set (n = 131)
 
-Operating UAVs in controlled airspace requires precise adherence to ATC phraseology. This chatbot acts as a bridge, providing real-time communication support. We fine-tuned and compared three architectures:
+![ATC metrics](figures/atc_metrics.png)
 
-- **GPT-2** — Lightweight, fast, edge-deployable
-- **Llama-2** — Strong semantic understanding
-- **Qwen-3** — High vanilla baseline performance
+SCOPE achieves the best result on every metric across all three models.
+The only exception is C_tok, where GCD scores higher by token masking —
+at the cost of a ~50% BERTScore collapse and DA-F1 reverting to
+zero-shot level.
 
-Each model was trained on the **ATC Corpus** dataset using both standard fine-tuning and **grammar-informed** training techniques to improve technical accuracy.
+
+### Llama-3.1-8B-Instruct
+
+| Method | C_cfg↑ | C̄↑ | DA-F1↑ | Slot-F1↑ | Hall%↓ | BERTScore↑ |
+|---|---|---|---|---|---|---|
+| Vanilla | 0.079 | 0.304 | 0.117 | 0.125 | 42.0 | 0.861 |
+| SFT | 0.995 | 0.808 | 0.267 | 0.397 | **0.0** | 0.889 |
+| DPO | 0.976 | 0.834 | 0.211 | 0.336 | **0.0** | 0.896 |
+| GCD | 0.017 | 0.507 | 0.117 | 0.405 | **0.0** | 0.447 |
+| **SCOPE (ours)** | **0.999** | **0.890** | **0.788** | **0.866** | **0.0** | **0.991** |
+
+### Qwen3-8B
+
+| Method | C_cfg↑ | C̄↑ | DA-F1↑ | Slot-F1↑ | Hall%↓ | BERTScore↑ |
+|---|---|---|---|---|---|---|
+| Vanilla | 0.103 | 0.275 | 0.144 | 0.219 | 28.2 | 0.835 |
+| SFT | 0.780 | 0.682 | 0.141 | 0.272 | 4.6 | 0.863 |
+| DPO | **0.809** | 0.700 | 0.177 | 0.313 | 2.3 | 0.864 |
+| GCD | 0.012 | 0.488 | 0.139 | 0.481 | **0.0** | 0.437 |
+| **SCOPE (ours)** | 0.957 | **0.835** | **0.656** | **0.744** | **0.0** | **0.989** |
+
+### GPT-2 Large (774M)
+
+| Method | C_cfg↑ | C̄↑ | DA-F1↑ | Slot-F1↑ | Hall%↓ | BERTScore↑ |
+|---|---|---|---|---|---|---|
+| Vanilla | 0.003 | 0.254 | 0.130 | 0.025 | 96.2 | 0.847 |
+| SFT | 0.181 | 0.363 | 0.139 | 0.122 | 41.2 | 0.846 |
+| DPO | 0.427 | 0.504 | 0.147 | 0.191 | 13.0 | 0.849 |
+| GCD | 0.008 | 0.462 | 0.146 | 0.405 | **0.0** | 0.405 |
+| **SCOPE (ours)** | **0.891** | **0.787** | **0.553** | **0.520** | **0.0** | **0.897** |
+
+**Metrics:** C_cfg = grammar conformance, C̄ = aggregate compliance,
+DA-F1 = dialogue-act F1, Slot-F1 = slot extraction F1,
+Hall% = hallucination rate (lower is better), BERTScore with domain-adapted encoder.
 
 ---
 
-## 📊 Evaluation Metrics
+## 🔑 Key Findings
 
-Models are evaluated based on four critical performance pillars:
-
-1. **BERTScore** — Evaluates generated text quality against ground truth using contextual embeddings.
-2. **Semantic Similarity** — Measures how well the model captures the intent of ATC instructions.
-3. **ATC Token Compliance** — A custom metric verifying adherence to standard aviation phraseology and keywords.
-4. **Compute Time** — Benchmarks latency to ensure feasibility for real-time deployment.
+- **SCOPE eliminates hallucination** across all three models while achieving near-perfect grammar conformance (C_cfg = 0.999 for Llama).
+- **Grammar-constrained decoding (GCD) collapses semantics** — achieving high C_tok by token masking causes a ~50% BERTScore drop and DA-F1 that matches the zero-shot baseline.
+- **Curriculum learning is essential for GPT-2** — without it, SCOPE degrades GPT-2 below SFT (C_cfg 0.091 vs 0.181). With curriculum, C_cfg reaches 0.891.
+- **SCOPE improves DA-F1 and Slot-F1 dramatically** over SFT and DPO, confirming that training-time compliance encoding improves rather than degrades semantic quality.
 
 ---
 
@@ -31,107 +67,45 @@ Models are evaluated based on four critical performance pillars:
 
 ### Installation
 
-Clone the repository and install the required dependencies:
-
 ```bash
 git clone https://github.com/Purdue-AIDA3/ATC_Chatbot
-cd ATC_Chatbot  
+cd ATC_Chatbot
+pip install torch==2.2.2 --index-url https://download.pytorch.org/whl/cu121
 pip install -r requirements.txt
+huggingface-cli login   # required for Llama (gated model)
+# Set HuggingFace token in config.json:
 ```
 
-### Running the Frontend
+---
 
-Set OpenAI key and HuggingFace token in config.json:
+### Running the Frontend
 
 ```bash
 python frontend.py
 ```
 
-### Training
-
-Replace `[MODEL]` with `GPT`, `LLAMA`, or `QWEN` in the filenames as needed.
-
-**Standard fine-tuning:**
-
-```bash
-python train/run_[MODEL]finetune_ATC.py
-```
-
-**Grammar-informed fine-tuning:**
-
-```bash
-python train/run_[MODEL]finetune_with_Grammar_ATC.py
-```
-
-### Evaluation
-
-To run the evaluation suite and generate metrics for a specific model (e.g., GPT):
-
-```bash
-python utils/utils_evals_GPT.py
-```
-
 ---
 
-## 📈 Results and Benchmarks
+## 📂 Repository Structure
 
-The table below summarizes model performance on the ATC Corpus. *Grammar* rows refer to models trained with grammar-informed scripts.
-
-| Model | Variant | BERTScore | Semantic Similarity | ATC Token Compliance | Compute Time (avg, mins) |
-|---|---|---|---|---|---|
-| GPT-2 | Vanilla | 0.772 | 0.179 | 0.292 | — |
-| GPT-2 | Standard fine-tuning | 0.787 | 0.187 | 0.221 | 4.12 |
-| GPT-2 | Grammar-informed fine-tuning | 0.809 | 0.296 | 0.611 | 4.18 |
-| Llama-2 | Vanilla | 0.785 | 0.241 | 0.278 | — |
-| Llama-2 | Standard fine-tuning | 0.788 | 0.148 | 0.298 | 8.25 |
-| Llama-2 | Grammar-informed fine-tuning | 0.814 | 0.319 | 0.662 | 8.29 |
-| Qwen-3 | Vanilla | 0.795 | 0.325 | 0.171 | — |
-| Qwen-3 | Standard fine-tuning | 0.795 | 0.302 | 0.313 | 8.27 |
-| Qwen-3 | Grammar-informed fine-tuning | 0.794 | 0.295 | 0.514 | 8.33 |
-
-### Charts
-
-> 🟣 Vanilla &nbsp;&nbsp; 🟢 Standard fine-tuning &nbsp;&nbsp; 💚 Grammar-informed fine-tuning
-
-**BERTScore**
-
-![BERTScore comparison across models and training variants](docs/bertscore.svg)
-
-**Semantic Similarity**
-
-![Semantic similarity comparison across models and training variants](docs/semantic_similarity.svg)
-
-**ATC Token Compliance**
-
-![ATC token compliance comparison across models and training variants](docs/atc_compliance.svg)
-
-> To regenerate these charts after updating results, run:
-> ```bash
-> python docs/generate_charts.py
-> ```
-
-### Key Findings
-
-- **ATC token compliance is where it matters most** — Grammar-informed fine-tuning nearly doubles or triples compliance scores across all three models. Standard fine-tuning sometimes makes things *worse*: GPT-2 drops from 0.292 to 0.221 with standard fine-tuning alone.
-
-- **Grammar-informed training consistently wins on semantic similarity** — Llama-2 grammar achieves the best score (0.319), with GPT-2 grammar and Qwen-3 grammar both outperforming their vanilla and standard fine-tuned counterparts.
-
-- **Compliance vs. fluency** — Grammar-informed training increases ATC Token Compliance by enforcing standard phraseology patterns, with only a marginal increase in compute time (e.g., GPT-2: 4.12 → 4.18 mins).
-
-- **Latency and edge deployment** — GPT-2 offers the lowest compute time, making it ideal for edge deployment, while Llama-2 and Qwen-3 require roughly 2× the training time but yield higher semantic similarity scores.
-
----
-
-## 📂 File Structure
-
-| File / Directory | Description |
-|---|---|
-| `docs/generate_charts.py` | Regenerates SVG result charts into `assets/` |
-| `train/run_[MODEL]finetune_ATC.py` | Scripts for standard supervised fine-tuning |
-| `train/run_[MODEL]finetune_with_Grammar_ATC.py` | Scripts incorporating aviation grammar constraints |
-| `utils/utils_evals_[MODEL].py` | Evaluation scripts for calculating metrics |
-| `docs/` | Generated SVG charts referenced by this README |
-| `data/` | Directory for the ATC Corpus dataset |
+```
+ATC_Chatbot/SCOPE/
+├── scope_train_curriculum.py        # SCOPE training (with curriculum)
+├── scope_train_general.py           # SCOPE training (without curriculum)
+├── run_train_all_curriculum.py      # Top-level orchestrator
+├── run_all_conditions_curriculum.py # GPT-2: all 13 conditions
+├── run_new_models_curriculum.py     # Llama / Qwen3
+├── evaluate_gcd_general.py          # GCD baseline evaluation
+├── cleanup_weights.py               # Delete weights, keep results
+├── requirements.txt
+├── vocab_ATC.json                   # ATC vocabulary whitelist
+├── ngram_whitelist_ATC.json         # ATC phrase whitelist
+├── G_ATC.lark                       # ATC grammar
+├── atc_pairs.json                   # Training + validation pairs
+├── atc_test.json                    # Test set (131 examples)
+└── figures/
+    └── atc_metrics.png
+```
 
 ---
 
@@ -139,13 +113,16 @@ The table below summarizes model performance on the ATC Corpus. *Grammar* rows r
 
 | Category | Tools |
 |---|---|
-| Frameworks | PyTorch, Hugging Face Transformers |
-| Models | GPT-2, Llama-2, Qwen-3 |
-| Dataset | ATC Corpus |
-| Visualization | Matplotlib (via `generate_charts.py`) |
+| Framework | PyTorch, HuggingFace Transformers |
+| Models | Llama-3.1-8B-Instruct, Qwen3-8B, GPT-2 Large |
+| Grammar parsing | Lark (Earley parser) |
+| Hyperparameter search | Optuna |
+| Dataset | LDC ATC Corpus (LDC94S14A) |
+| Specification | ICAO Doc 4444, FAA JO 7110.65 |
 
 ---
 
 ## 📄 License
 
-Distributed under the MIT License. See [`LICENSE`](LICENSE) for more information.
+MIT License. The LDC ATC corpus is used for research purposes under the
+[LDC User Agreement](https://catalog.ldc.upenn.edu/license/ldc-non-members-agreement.pdf).
