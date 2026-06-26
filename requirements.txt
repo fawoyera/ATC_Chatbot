@@ -28,3 +28,23 @@ pandas >= 2.2.1
 
 psutil >= 5.9.5
 
+openai-whisper
+
+styletts2
+
+accelerate
+
+trl==1.5.1
+
+peft==0.14.0
+
+huggingface_hub
+
+torchao
+
+
+
+
+
+
+

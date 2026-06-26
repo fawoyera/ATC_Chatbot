@@ -73,7 +73,7 @@ cd ATC_Chatbot
 pip install torch==2.2.2 --index-url https://download.pytorch.org/whl/cu121
 pip install -r requirements.txt
 huggingface-cli login   # required for Llama (gated model)
-# Set HuggingFace token in config.json:
+# Set HuggingFace token in .env:
 ```
 
 ---
